@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catalogador de Gibis Premium</title>
-    <!-- Bibliotecas externas para exportação em PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
@@ -96,6 +95,10 @@
         
         .btn-pdf { background-color: #28a745; margin-left: auto; } 
         .btn-pdf:hover { background-color: #218838; }
+        .btn-backup { background-color: #17a2b8; }
+        .btn-backup:hover { background-color: #138496; }
+        .btn-restore { background-color: #6c757d; }
+        .btn-restore:hover { background-color: #5a6268; }
         .btn-delete-sheet { background-color: #dc3545; }
         .btn-delete-sheet:hover { background-color: #a71d2a; }
 
@@ -139,12 +142,6 @@
             border-radius: 6px;
         }
 
-        .filter-bar label {
-            font-weight: bold;
-            font-size: 14px;
-            color: var(--primary);
-        }
-
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -165,7 +162,6 @@
             vertical-align: middle;
         }
 
-        /* Estilo para inputs de edição dentro da tabela */
         td input[type="text"], td input[type="number"] {
             width: 100%;
             padding: 4px 6px;
@@ -183,11 +179,7 @@
         tr:nth-child(even) { background-color: #f8f9fa; }
         tr:hover { background-color: #e9ecef; }
 
-        .capa-cell {
-            text-align: center;
-            width: 60px;
-        }
-
+        .capa-cell { text-align: center; width: 60px; }
         .capa-thumb {
             width: 48px;
             height: 68px;
@@ -196,9 +188,7 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.25);
             display: block;
             margin: 0 auto;
-            background-color: #e9ecef;
         }
-
         .capa-placeholder {
             width: 48px;
             height: 68px;
@@ -213,60 +203,19 @@
             text-align: center;
         }
 
-        .numero-cell { 
-            font-weight: bold; 
-            color: var(--accent); 
-            font-size: 1.05em; 
-            white-space: nowrap;
-        } 
-        
-        .actions-cell { 
-            text-align: center; 
-            white-space: nowrap;
-        }
+        .numero-cell { font-weight: bold; color: var(--accent); font-size: 1.05em; white-space: nowrap; }
+        .actions-cell { text-align: center; white-space: nowrap; }
 
-        .btn-edit {
-            background: #ffc107;
-            color: #212529;
-            padding: 6px 10px;
-            font-size: 12px;
-            text-transform: none;
-            margin-right: 4px;
-        }
-        .btn-edit:hover { background: #e0a800; }
-
-        .btn-save {
-            background: #28a745;
-            padding: 6px 10px;
-            font-size: 12px;
-            text-transform: none;
-            margin-right: 4px;
-        }
-        .btn-save:hover { background: #218838; }
-
-        .btn-cancel {
-            background: #6c757d;
-            padding: 6px 10px;
-            font-size: 12px;
-            text-transform: none;
-        }
-        .btn-cancel:hover { background: #5a6268; }
-
-        .btn-delete { 
-            background: #dc3545; 
-            padding: 6px 10px; 
-            font-size: 12px; 
-            text-transform: none;
-        }
-        .btn-delete:hover { background: #a71d2a; }
+        .btn-edit { background: #ffc107; color: #212529; padding: 6px 10px; font-size: 12px; margin-right: 4px; }
+        .btn-save { background: #28a745; padding: 6px 10px; font-size: 12px; margin-right: 4px; }
+        .btn-cancel { background: #6c757d; padding: 6px 10px; font-size: 12px; }
+        .btn-delete { background: #dc3545; padding: 6px 10px; font-size: 12px; }
 
         @media (max-width: 600px) {
             body { padding: 8px; }
             .container { padding: 12px; }
             h1 { font-size: 1.7em; }
             .controls { flex-direction: column; align-items: stretch; gap: 8px; }
-            .controls label { text-align: center; }
-            .filter-bar { flex-direction: column; align-items: stretch; }
             .btn-pdf { margin-left: 0; }
             .form-grid { grid-template-columns: 1fr; }
             .file-wrapper { grid-column: 1 / -1; }
@@ -284,10 +233,14 @@
         <select id="sheetSelect" onchange="changeSheet()"></select>
         <button onclick="createNewSheet()">+ Nova Lista</button>
         <button class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
+        
+        <button class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
+        <button class="btn-restore" onclick="document.getElementById('importInput').click()">📂 Restaurar Backup</button>
+        <input type="file" id="importInput" style="display:none" onchange="importarBackup(event)" accept=".json">
+
         <button class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
     </div>
 
-    <!-- Formulário -->
     <form id="addGibiForm" onsubmit="addGibi(event)">
         <div class="form-grid">
             <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
@@ -309,7 +262,6 @@
     <div id="pdfContent">
         <h2 id="currentSheetTitle" style="color: var(--primary); text-align: center; margin-bottom: 12px;"></h2>
         
-        <!-- Filtro de Categoria -->
         <div class="filter-bar no-pdf">
             <label for="categoryFilter">🔍 Filtrar por Categoria:</label>
             <select id="categoryFilter" onchange="renderTable()">
@@ -338,34 +290,14 @@
 </div>
 
 <script>
-    let fundosPersonagens = JSON.parse(localStorage.getItem('gibisFundos_v3')) || {
-        "Chico Bento": "./imagens/chico-bento.jpg",
-        "default": ""
-    };
-
-    let database = JSON.parse(localStorage.getItem('gibisDB_v3')) || {
-        "Chico Bento": [
-            { capa: "", editora: "Panini", categoria: "Almanaque", serie: "1ª Série", numero: 56, data: "Abril 2016", estado: "Bom" },
-            { capa: "", editora: "Panini", categoria: "Gibi Mensal", serie: "1ª Série", numero: 78, data: "Dezembro 2019", estado: "Bom" },
-            { capa: "", editora: "Panini", categoria: "Edição Especial", serie: "1ª Série", numero: 80, data: "Abril 2020", estado: "Bom" }
-        ]
-    };
-
+    let fundosPersonagens = JSON.parse(localStorage.getItem('gibisFundos_v3')) || { "default": "" };
+    let database = JSON.parse(localStorage.getItem('gibisDB_v3')) || { "Chico Bento": [] };
     let currentSheet = Object.keys(database)[0] || "Chico Bento";
-    let editingIndex = null; // Armazena o índice do item em edição
+    let editingIndex = null;
 
     function saveData() { 
         localStorage.setItem('gibisDB_v3', JSON.stringify(database)); 
         localStorage.setItem('gibisFundos_v3', JSON.stringify(fundosPersonagens)); 
-    }
-
-    function aplicarFundo() {
-        const urlImagem = fundosPersonagens[currentSheet] || fundosPersonagens["default"];
-        if (urlImagem) {
-            document.body.style.backgroundImage = `url('${urlImagem}')`;
-        } else {
-            document.body.style.backgroundImage = 'none';
-        }
     }
 
     function init() { 
@@ -379,7 +311,6 @@
         updateSheetDropdown(); 
         updateCategoryFilterOptions();
         renderTable(); 
-        aplicarFundo();
     }
 
     function updateSheetDropdown() {
@@ -419,11 +350,7 @@
             filterSelect.appendChild(option);
         });
 
-        if (categorias.includes(selectedValue)) {
-            filterSelect.value = selectedValue;
-        } else {
-            filterSelect.value = "TODAS";
-        }
+        filterSelect.value = categorias.includes(selectedValue) ? selectedValue : "TODAS";
     }
 
     function createNewSheet() {
@@ -445,7 +372,7 @@
             saveData();
             
             const remaining = Object.keys(database);
-            if (remaining.length > 0) currentSheet = remaining[0];
+            currentSheet = remaining.length > 0 ? remaining[0] : "";
             init();
         }
     }
@@ -466,7 +393,6 @@
 
     async function addGibi(event) {
         event.preventDefault();
-        
         const fileInput = document.getElementById('capaInput');
         let capaBase64 = "";
 
@@ -500,19 +426,9 @@
         }
     }
 
-    // Inicia o modo de edição na linha selecionada
-    function startEdit(index) {
-        editingIndex = index;
-        renderTable();
-    }
+    function startEdit(index) { editingIndex = index; renderTable(); }
+    function cancelEdit() { editingIndex = null; renderTable(); }
 
-    // Cancela o modo de edição
-    function cancelEdit() {
-        editingIndex = null;
-        renderTable();
-    }
-
-    // Salva as alterações feitas na linha
     async function saveEdit(index) {
         const fileInput = document.getElementById(`editCapa_${index}`);
         let capaBase64 = database[currentSheet][index].capa;
@@ -549,7 +465,6 @@
             itemsToRender = itemsToRender.filter(item => item.categoria.trim() === selectedFilter);
         }
 
-        // Se não estiver editando nenhuma linha, ordena por número normalmente
         if (editingIndex === null) {
             itemsToRender.sort((a, b) => a.numero - b.numero);
         }
@@ -557,12 +472,9 @@
         itemsToRender.forEach((item) => {
             const indexNoBanco = database[currentSheet].indexOf(item);
             
-            // Verifica se esta linha está no modo de edição
             if (editingIndex === indexNoBanco) {
                 tbody.innerHTML += `<tr>
-                    <td class="capa-cell">
-                        <input type="file" id="editCapa_${indexNoBanco}" accept="image/*" style="font-size:10px; width:70px;">
-                    </td>
+                    <td class="capa-cell"><input type="file" id="editCapa_${indexNoBanco}" accept="image/*" style="font-size:10px; width:70px;"></td>
                     <td><input type="number" id="editNumero_${indexNoBanco}" value="${item.numero}"></td>
                     <td><input type="text" id="editEditora_${indexNoBanco}" value="${item.editora}"></td>
                     <td><input type="text" id="editCategoria_${indexNoBanco}" value="${item.categoria}"></td>
@@ -594,6 +506,42 @@
                 </tr>`;
             }
         });
+    }
+
+    // Exportar Backup em JSON
+    function exportarBackup() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ database, fundosPersonagens }));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `backup_gibis_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    // Restaurar Backup em JSON
+    function importarBackup(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.database) {
+                    database = data.database;
+                    if (data.fundosPersonagens) fundosPersonagens = data.fundosPersonagens;
+                    saveData();
+                    init();
+                    alert("Backup restaurado com sucesso!");
+                } else {
+                    alert("Arquivo de backup inválido.");
+                }
+            } catch (err) {
+                alert("Erro ao ler o arquivo de backup.");
+            }
+        };
+        reader.readAsText(file);
     }
 
     function exportToPDF() {
