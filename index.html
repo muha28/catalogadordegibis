@@ -1,106 +1,679 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Coleção de Gibis</title>
-  <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 0 10px; }
-    form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-    input, button { padding: 8px; font-size: 16px; }
-    .gibi-card { border: 1px solid #ccc; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogador de Gibis Premium</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        :root { 
+            --primary: #2E4057; 
+            --accent: #e63946; 
+            --bg-page: #f4f7f9; 
+            --bg-panel: rgba(255, 255, 255, 0.96); 
+            --text: #1d3557;
+        }
+
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-attachment: fixed;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.5s ease-in-out; 
+            margin: 0; 
+            padding: 20px; 
+            color: var(--text); 
+            background-color: var(--bg-page);
+        }
+
+        h1, h2 { 
+            font-family: 'Bangers', cursive, 'Segoe UI', sans-serif; 
+            letter-spacing: 1px; 
+        }
+
+        .container { 
+            max-width: 1100px; 
+            margin: 0 auto; 
+            background: var(--bg-panel); 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
+            border: 2px solid var(--primary); 
+        }
+
+        h1 { 
+            color: var(--primary); 
+            margin-top: 0; 
+            text-align: center; 
+            font-size: 2.2em; 
+            text-transform: uppercase; 
+        }
+
+        .auth-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .btn-auth {
+            background-color: #4285F4;
+            color: white;
+        }
+        .btn-auth:hover {
+            background-color: #357ae8;
+        }
+
+        .controls { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+            flex-wrap: wrap; 
+            align-items: center; 
+            background: rgba(233, 236, 239, 0.85); 
+            padding: 15px; 
+            border-radius: 8px; 
+            border: 1px solid #ccc; 
+        }
+
+        select, input, button { 
+            padding: 8px 10px; 
+            border: 2px solid #ccc; 
+            border-radius: 6px; 
+            font-size: 14px; 
+            font-family: 'Segoe UI', sans-serif; 
+        }
+
+        input:focus, select:focus { 
+            border-color: var(--accent); 
+            outline: none; 
+        }
+
+        button { 
+            background-color: var(--primary); 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            text-transform: uppercase; 
+            font-weight: bold; 
+        }
+
+        button:hover { 
+            background-color: var(--text); 
+            transform: translateY(-1px); 
+        } 
+        
+        .btn-pdf { background-color: #28a745; margin-left: auto; } 
+        .btn-pdf:hover { background-color: #218838; }
+        .btn-backup { background-color: #17a2b8; }
+        .btn-backup:hover { background-color: #138496; }
+        .btn-restore { background-color: #6c757d; }
+        .btn-restore:hover { background-color: #5a6268; }
+        .btn-delete-sheet { background-color: #dc3545; }
+        .btn-delete-sheet:hover { background-color: #a71d2a; }
+
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); 
+            gap: 10px; 
+            margin-bottom: 20px; 
+            background: rgba(248, 249, 250, 0.95); 
+            padding: 18px; 
+            border-radius: 8px; 
+            border: 2px solid var(--primary); 
+            align-items: center;
+        }
+
+        .file-wrapper {
+            grid-column: span 2;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .form-submit-btn {
+            grid-column: 1 / -1; 
+            background-color: var(--accent);
+            font-size: 15px;
+            padding: 12px;
+        }
+
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 12px;
+            background: #e9ecef;
+            padding: 10px 15px;
+            border-radius: 6px;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 6px;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            background: white; 
+            min-width: 750px;
+        }
+
+        th, td { 
+            border: 1px solid #dee2e6; 
+            padding: 8px 10px; 
+            text-align: left; 
+            vertical-align: middle;
+        }
+
+        td input[type="text"], td input[type="number"] {
+            width: 100%;
+            padding: 4px 6px;
+            font-size: 13px;
+        }
+        
+        th { 
+            background-color: var(--primary); 
+            color: white; 
+            text-transform: uppercase; 
+            font-size: 0.85em; 
+            white-space: nowrap;
+        }
+
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #e9ecef; }
+
+        .capa-cell { text-align: center; width: 60px; }
+        .capa-thumb {
+            width: 48px;
+            height: 68px;
+            object-fit: cover;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            display: block;
+            margin: 0 auto;
+        }
+        .capa-placeholder {
+            width: 48px;
+            height: 68px;
+            border-radius: 4px;
+            border: 1px dashed #bbb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #888;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .numero-cell { font-weight: bold; color: var(--accent); font-size: 1.05em; white-space: nowrap; }
+        .actions-cell { text-align: center; white-space: nowrap; }
+
+        .btn-edit { background: #ffc107; color: #212529; padding: 6px 10px; font-size: 12px; margin-right: 4px; }
+        .btn-save { background: #28a745; padding: 6px 10px; font-size: 12px; margin-right: 4px; }
+        .btn-cancel { background: #6c757d; padding: 6px 10px; font-size: 12px; }
+        .btn-delete { background: #dc3545; padding: 6px 10px; font-size: 12px; }
+
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .container { padding: 12px; }
+            h1 { font-size: 1.7em; }
+            .controls { flex-direction: column; align-items: stretch; gap: 8px; }
+            .btn-pdf { margin-left: 0; }
+            .form-grid { grid-template-columns: 1fr; }
+            .file-wrapper { grid-column: 1 / -1; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <h1>Minha Coleção de Gibis</h1>
+<div class="container">
+    <div class="auth-bar">
+        <span id="userStatus">Carregando usuário...</span>
+        <button id="btnLogin" class="btn-auth" onclick="loginWithGoogle()">🔑 Login Google</button>
+        <button id="btnLogout" class="btn-restore" onclick="logout()" style="display:none;">Sair</button>
+    </div>
 
-  <!-- FORMULÁRIO PARA INSERIR GIBIS -->
-  <form id="form-gibi">
-    <input type="text" id="input-titulo" placeholder="Título do Gibi" required>
-    <input type="number" id="input-numero" placeholder="Número da Edição" required>
-    <button type="submit">Salvar Gibi</button>
-  </form>
+    <h1>📚 Meu Catalogador de Gibis</h1>
 
-  <hr>
+    <div class="controls">
+        <label for="sheetSelect"><strong>Personagem:</strong></label>
+        <select id="sheetSelect" onchange="changeSheet()"></select>
+        <button onclick="createNewSheet()">+ Nova Lista</button>
+        <button class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
+        
+        <button class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
+        <button class="btn-restore" onclick="document.getElementById('importInput').click()">📂 Restaurar Backup</button>
+        <input type="file" id="importInput" style="display:none" onchange="importarBackup(event)" accept=".json">
 
-  <!-- CONTAINER ONDE OS GIBIS FICARÃO SALVOS NA TELA -->
-  <h2>Gibis Cadastrados</h2>
-  <div id="lista-gibis">
-    <p>Carregando gibis...</p>
-  </div>
+        <button class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
+    </div>
 
-  <!-- SCRIPT DO FIREBASE DENTRO DO PRÓPRIO HTML (OBLIGATÓRIO: type="module") -->
-  <script type="module">
-    // 1. IMPORTAÇÕES DO FIREBASE (Firestore CDN)
+    <form id="addGibiForm" onsubmit="addGibi(event)">
+        <div class="form-grid">
+            <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
+            <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)" required>
+            <input type="text" id="serie" placeholder="Série/Fase (ex: 1ª Série)" required>
+            <input type="number" id="numero" placeholder="Número (ex: 1)" required>
+            <input type="text" id="data" placeholder="Mês/Ano (ex: Jan/1987)">
+            <input type="text" id="estado" placeholder="Estado (ex: Bom)">
+            
+            <div class="file-wrapper">
+                <label for="capaInput">Imagem da Capa (Opcional):</label>
+                <input type="file" id="capaInput" accept="image/*">
+            </div>
+
+            <button type="submit" class="form-submit-btn">+ Adicionar À Lista</button>
+        </div>
+    </form>
+
+    <div id="pdfContent">
+        <h2 id="currentSheetTitle" style="color: var(--primary); text-align: center; margin-bottom: 12px;"></h2>
+        
+        <div class="filter-bar no-pdf">
+            <label for="categoryFilter">🔍 Filtrar por Categoria:</label>
+            <select id="categoryFilter" onchange="renderTable()">
+                <option value="TODAS">Todas as Categorias</option>
+            </select>
+        </div>
+
+        <div class="table-responsive">
+            <table id="gibiTable">
+                <thead>
+                    <tr>
+                        <th class="capa-cell">Capa</th>
+                        <th>Nº</th>
+                        <th>Editora</th>
+                        <th>Categoria</th>
+                        <th>Série/Fase</th>
+                        <th>Data</th>
+                        <th>Estado</th>
+                        <th class="actions-cell no-pdf">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { 
-      getFirestore, 
-      collection, 
-      addDoc, 
-      onSnapshot 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 2. SUAS CREDENCIAIS DO FIREBASE (Substitua pelos dados do seu projeto)
     const firebaseConfig = {
-		apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
-		authDomain: "gibis-da-bibi.firebaseapp.com",
-		projectId: "gibis-da-bibi",
-		storageBucket: "gibis-da-bibi.firebasestorage.app",
-		messagingSenderId: "1069619452025",
-		appId: "1:1069619452025:web:82d0743ae68029df595ca8"
-	};
+        apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
+        authDomain: "gibis-da-bibi.firebaseapp.com",
+        projectId: "gibis-da-bibi",
+        storageBucket: "gibis-da-bibi.firebasestorage.app",
+        messagingSenderId: "1069619452025",
+        appId: "1:1069619452025:web:82d0743ae68029df595ca8"
+    };
 
-    // Inicializa o Firebase e o Banco Firestore
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
 
-    const formGibi = document.getElementById("form-gibi");
-    const listaGibisContainer = document.getElementById("lista-gibis");
+    let fundosPersonagens = { "default": "" };
+    let database = { "Chico Bento": [] };
+    let currentSheet = "Chico Bento";
+    let editingIndex = null;
+    let currentUser = null;
 
-    // 3. LEITURA EM TEMPO REAL (Garante que os dados permanecem ao dar refresh)
-    // O 'onSnapshot' busca no Firestore e atualiza o HTML automaticamente
-    onSnapshot(collection(db, "gibis"), (snapshot) => {
-      listaGibisContainer.innerHTML = ""; // Limpa antes de reescrever
+    // Monitorar Autenticação de forma assíncrona
+    onAuthStateChanged(auth, async (user) => {
+        currentUser = user;
+        const statusEl = document.getElementById('userStatus');
+        const loginBtn = document.getElementById('btnLogin');
+        const logoutBtn = document.getElementById('btnLogout');
 
-      if (snapshot.empty) {
-        listaGibisContainer.innerHTML = "<p>Nenhum gibi encontrado.</p>";
-        return;
-      }
-
-      snapshot.forEach((doc) => {
-        const gibi = doc.data();
-        listaGibisContainer.innerHTML += `
-          <div class="gibi-card">
-            <h3>${gibi.titulo}</h3>
-            <p><strong>Edição:</strong> #${gibi.numero}</p>
-          </div>
-        `;
-      });
+        if (user) {
+            statusEl.innerText = `Olá, ${user.displayName || user.email}`;
+            loginBtn.style.display = 'none';
+            logoutBtn.style.display = 'inline-block';
+            await loadUserData();
+        } else {
+            statusEl.innerText = "Modo Convidado (Local)";
+            loginBtn.style.display = 'inline-block';
+            logoutBtn.style.display = 'none';
+            loadLocalData();
+        }
+        init();
     });
 
-    // 4. SALVANDO O GIBI NO BANCO DE DADOS
-    formGibi.addEventListener("submit", async (event) => {
-      // e.preventDefault() EVITA o refresh do navegador que limpava os dados!
-      event.preventDefault(); 
+    window.loginWithGoogle = function() {
+        const provider = new GoogleAuthProvider();
+        signInWithPopup(auth, provider).catch(error => {
+            alert("Erro ao realizar login: " + error.message);
+        });
+    };
 
-      const titulo = document.getElementById("input-titulo").value;
-      const numero = document.getElementById("input-numero").value;
+    window.logout = function() {
+        signOut(auth);
+    };
 
-      try {
-        await addDoc(collection(db, "gibis"), {
-          titulo: titulo,
-          numero: numero,
-          criadoEm: new Date()
+    async function saveData() { 
+        if (currentUser) {
+            try {
+                await setDoc(doc(db, "users", currentUser.uid), {
+                    database: database,
+                    fundosPersonagens: fundosPersonagens
+                });
+            } catch (err) {
+                console.error("Erro ao salvar no Firebase:", err);
+            }
+        } else {
+            localStorage.setItem('gibisDB_v3', JSON.stringify(database)); 
+            localStorage.setItem('gibisFundos_v3', JSON.stringify(fundosPersonagens)); 
+        }
+    }
+
+    async function loadUserData() {
+        try {
+            const docRef = doc(db, "users", currentUser.uid);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                database = data.database || { "Chico Bento": [] };
+                fundosPersonagens = data.fundosPersonagens || { "default": "" };
+            } else {
+                loadLocalData();
+                await saveData();
+            }
+        } catch (err) {
+            console.error("Erro ao carregar do Firebase:", err);
+            loadLocalData();
+        }
+    }
+
+    function loadLocalData() {
+        fundosPersonagens = JSON.parse(localStorage.getItem('gibisFundos_v3')) || { "default": "" };
+        database = JSON.parse(localStorage.getItem('gibisDB_v3')) || { "Chico Bento": [] };
+    }
+
+    function init() { 
+        const sheets = Object.keys(database);
+        if (sheets.length === 0) {
+            database["Minha Coleção"] = [];
+            currentSheet = "Minha Coleção";
+            saveData();
+        } else if (!database[currentSheet]) {
+            currentSheet = sheets[0];
+        }
+        editingIndex = null;
+        updateSheetDropdown(); 
+        updateCategoryFilterOptions();
+        renderTable(); 
+    }
+
+    function updateSheetDropdown() {
+        const select = document.getElementById('sheetSelect');
+        select.innerHTML = '';
+        
+        const sortedSheets = Object.keys(database).sort((a, b) => 
+            a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+        );
+
+        sortedSheets.forEach(sheet => {
+            const option = document.createElement('option');
+            option.value = sheet; 
+            option.textContent = sheet;
+            if (sheet === currentSheet) option.selected = true;
+            select.appendChild(option);
         });
 
-        formGibi.reset(); // Limpa os campos do formulário após salvar
-      } catch (error) {
-        console.error("Erro ao salvar no Firebase:", error);
-        alert("Erro ao salvar. Verifique o console.");
-      }
-    });
-  </script>
+        document.getElementById('currentSheetTitle').innerText = "COLEÇÃO: " + currentSheet.toUpperCase();
+    }
 
+    function updateCategoryFilterOptions() {
+        const filterSelect = document.getElementById('categoryFilter');
+        const selectedValue = filterSelect.value;
+        filterSelect.innerHTML = '<option value="TODAS">Todas as Categorias</option>';
+
+        if (!database[currentSheet]) return;
+
+        const categorias = [...new Set(database[currentSheet].map(item => item.categoria ? item.categoria.trim() : ""))]
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+
+        categorias.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            filterSelect.appendChild(option);
+        });
+
+        filterSelect.value = categorias.includes(selectedValue) ? selectedValue : "TODAS";
+    }
+
+    window.createNewSheet = async function() {
+        const name = prompt("Nome do Personagem/Lista:");
+        if (name && !database[name]) {
+            database[name] = []; 
+            currentSheet = name;
+            await saveData(); 
+            init();
+        } else if (database[name]) { 
+            alert("Esta lista já existe!"); 
+        }
+    };
+
+    window.deleteCurrentSheet = async function() {
+        if (confirm(`Tem certeza que deseja excluir a lista "${currentSheet}"?`)) {
+            delete database[currentSheet];
+            delete fundosPersonagens[currentSheet];
+            await saveData();
+            
+            const remaining = Object.keys(database);
+            currentSheet = remaining.length > 0 ? remaining[0] : "";
+            init();
+        }
+    };
+
+    window.changeSheet = function() { 
+        currentSheet = document.getElementById('sheetSelect').value; 
+        init(); 
+    };
+
+    function convertFileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    window.addGibi = async function(event) {
+        event.preventDefault(); // Impede o recarregamento automático da página
+        const fileInput = document.getElementById('capaInput');
+        let capaBase64 = "";
+
+        if (fileInput.files && fileInput.files[0]) {
+            capaBase64 = await convertFileToBase64(fileInput.files[0]);
+        }
+
+        if (!database[currentSheet]) {
+            database[currentSheet] = [];
+        }
+
+        database[currentSheet].push({
+            capa: capaBase64,
+            editora: document.getElementById('editora').value,
+            categoria: document.getElementById('categoria').value,
+            serie: document.getElementById('serie').value,
+            numero: parseInt(document.getElementById('numero').value) || 0,
+            data: document.getElementById('data').value,
+            estado: document.getElementById('estado').value
+        });
+
+        await saveData(); // Garante o salvamento no Firestore/LocalStorage antes de renderizar
+        updateCategoryFilterOptions();
+        renderTable(); 
+        document.getElementById('addGibiForm').reset();
+    };
+
+    window.deleteGibi = async function(index) {
+        if (confirm("Remover este gibi?")) { 
+            database[currentSheet].splice(index, 1); 
+            if (editingIndex === index) editingIndex = null;
+            await saveData(); 
+            updateCategoryFilterOptions();
+            renderTable(); 
+        }
+    };
+
+    window.startEdit = function(index) { editingIndex = index; renderTable(); };
+    window.cancelEdit = function() { editingIndex = null; renderTable(); };
+
+    window.saveEdit = async function(index) {
+        const fileInput = document.getElementById(`editCapa_${index}`);
+        let capaBase64 = database[currentSheet][index].capa;
+
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            capaBase64 = await convertFileToBase64(fileInput.files[0]);
+        }
+
+        database[currentSheet][index] = {
+            capa: capaBase64,
+            numero: parseInt(document.getElementById(`editNumero_${index}`).value) || 0,
+            editora: document.getElementById(`editEditora_${index}`).value,
+            categoria: document.getElementById(`editCategoria_${index}`).value,
+            serie: document.getElementById(`editSerie_${index}`).value,
+            data: document.getElementById(`editData_${index}`).value,
+            estado: document.getElementById(`editEstado_${index}`).value
+        };
+
+        editingIndex = null;
+        await saveData();
+        updateCategoryFilterOptions();
+        renderTable();
+    };
+
+    window.renderTable = function() {
+        const tbody = document.getElementById('tableBody'); 
+        const selectedFilter = document.getElementById('categoryFilter').value;
+        tbody.innerHTML = '';
+
+        if (!database[currentSheet]) return;
+
+        let itemsToRender = [...database[currentSheet]];
+        if (selectedFilter !== "TODAS") {
+            itemsToRender = itemsToRender.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
+        }
+
+        if (editingIndex === null) {
+            itemsToRender.sort((a, b) => a.numero - b.numero);
+        }
+
+        itemsToRender.forEach((item) => {
+            const indexNoBanco = database[currentSheet].indexOf(item);
+            
+            if (editingIndex === indexNoBanco) {
+                tbody.innerHTML += `<tr>
+                    <td class="capa-cell"><input type="file" id="editCapa_${indexNoBanco}" accept="image/*" style="font-size:10px; width:70px;"></td>
+                    <td><input type="number" id="editNumero_${indexNoBanco}" value="${item.numero}"></td>
+                    <td><input type="text" id="editEditora_${indexNoBanco}" value="${item.editora}"></td>
+                    <td><input type="text" id="editCategoria_${indexNoBanco}" value="${item.categoria}"></td>
+                    <td><input type="text" id="editSerie_${indexNoBanco}" value="${item.serie}"></td>
+                    <td><input type="text" id="editData_${indexNoBanco}" value="${item.data}"></td>
+                    <td><input type="text" id="editEstado_${indexNoBanco}" value="${item.estado}"></td>
+                    <td class="actions-cell no-pdf">
+                        <button class="btn-save" onclick="saveEdit(${indexNoBanco})">Salvar</button>
+                        <button class="btn-cancel" onclick="cancelEdit()">X</button>
+                    </td>
+                </tr>`;
+            } else {
+                const capaHTML = item.capa 
+                    ? `<img src="${item.capa}" class="capa-thumb" alt="Capa Nº ${item.numero}">`
+                    : `<div class="capa-placeholder">Sem capa</div>`;
+
+                tbody.innerHTML += `<tr>
+                    <td class="capa-cell">${capaHTML}</td>
+                    <td class="numero-cell">Nº ${item.numero}</td>
+                    <td>${item.editora}</td>
+                    <td>${item.categoria}</td>
+                    <td>${item.serie}</td>
+                    <td>${item.data}</td>
+                    <td>${item.estado}</td>
+                    <td class="actions-cell no-pdf">
+                        <button class="btn-edit" onclick="startEdit(${indexNoBanco})">Editar</button>
+                        <button class="btn-delete" onclick="deleteGibi(${indexNoBanco})">Excluir</button>
+                    </td>
+                </tr>`;
+            }
+        });
+    };
+
+    window.exportarBackup = function() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ database, fundosPersonagens }));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `backup_gibis_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    };
+
+    window.importarBackup = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.database) {
+                    database = data.database;
+                    if (data.fundosPersonagens) fundosPersonagens = data.fundosPersonagens;
+                    await saveData();
+                    init();
+                    alert("Backup restaurado com sucesso!");
+                } else {
+                    alert("Arquivo de backup inválido.");
+                }
+            } catch (err) {
+                alert("Erro ao ler o arquivo de backup.");
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    window.exportToPDF = function() {
+        const element = document.getElementById('pdfContent');
+        const actionCols = document.querySelectorAll('.no-pdf');
+        
+        actionCols.forEach(el => el.style.display = 'none');
+
+        const opt = { 
+            margin: 8, 
+            filename: `Colecao_${currentSheet}.pdf`, 
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 }, 
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => { 
+            actionCols.forEach(el => el.style.display = ''); 
+        });
+    };
+</script>
 </body>
 </html>
