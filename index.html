@@ -65,9 +65,24 @@
         .btn-auth {
             background-color: #4285F4;
             color: white;
+            padding: 8px 16px;
         }
         .btn-auth:hover {
             background-color: #357ae8;
+        }
+
+        .login-prompt {
+            text-align: center;
+            padding: 40px 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px dashed var(--primary);
+            margin-top: 20px;
+        }
+
+        .login-prompt h2 {
+            margin-top: 0;
+            color: var(--primary);
         }
 
         .controls { 
@@ -251,63 +266,73 @@
 
     <h1>📚 Meu Catalogador de Gibis</h1>
 
-    <div class="controls">
-        <label for="sheetSelect"><strong>Personagem:</strong></label>
-        <select id="sheetSelect" onchange="changeSheet()"></select>
-        <button onclick="createNewSheet()">+ Nova Lista</button>
-        <button class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
-        
-        <button class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
-        <button class="btn-restore" onclick="document.getElementById('importInput').click()">📂 Restaurar Backup</button>
-        <input type="file" id="importInput" style="display:none" onchange="importarBackup(event)" accept=".json">
-
-        <button class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
+    <!-- TELA DE SOLICITAÇÃO DE LOGIN -->
+    <div id="loginPrompt" class="login-prompt" style="display: none;">
+        <h2>Acesso Restrito</h2>
+        <p>Por favor, faça login com sua conta Google para acessar e gerenciar a sua coleção de gibis na nuvem.</p>
+        <button class="btn-auth" onclick="loginWithGoogle()">🔑 Fazer Login com Google</button>
     </div>
 
-    <form id="addGibiForm" onsubmit="addGibi(event)">
-        <div class="form-grid">
-            <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
-            <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)" required>
-            <input type="text" id="serie" placeholder="Série/Fase (ex: 1ª Série)" required>
-            <input type="number" id="numero" placeholder="Número (ex: 1)" required>
-            <input type="text" id="data" placeholder="Mês/Ano (ex: Jan/1987)">
-            <input type="text" id="estado" placeholder="Estado (ex: Bom)">
+    <!-- CONTEÚDO PRINCIPAL DO APLICATIVO -->
+    <div id="appContent" style="display: none;">
+        <div class="controls">
+            <label for="sheetSelect"><strong>Personagem:</strong></label>
+            <select id="sheetSelect" onchange="changeSheet()"></select>
+            <button onclick="createNewSheet()">+ Nova Lista</button>
+            <button class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
             
-            <div class="file-wrapper">
-                <label for="capaInput">Imagem da Capa (Opcional):</label>
-                <input type="file" id="capaInput" accept="image/*">
+            <button class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
+            <button class="btn-restore" onclick="document.getElementById('importInput').click()">📂 Restaurar Backup</button>
+            <input type="file" id="importInput" style="display:none" onchange="importarBackup(event)" accept=".json">
+
+            <button class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
+        </div>
+
+        <form id="addGibiForm" onsubmit="addGibi(event)">
+            <div class="form-grid">
+                <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
+                <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)" required>
+                <input type="text" id="serie" placeholder="Série/Fase (ex: 1ª Série)" required>
+                <input type="number" id="numero" placeholder="Número (ex: 1)" required>
+                <input type="text" id="data" placeholder="Mês/Ano (ex: Jan/1987)">
+                <input type="text" id="estado" placeholder="Estado (ex: Bom)">
+                
+                <div class="file-wrapper">
+                    <label for="capaInput">Imagem da Capa (Opcional):</label>
+                    <input type="file" id="capaInput" accept="image/*">
+                </div>
+
+                <button type="submit" id="btnSubmitForm" class="form-submit-btn">+ Adicionar À Lista</button>
+            </div>
+        </form>
+
+        <div id="pdfContent">
+            <h2 id="currentSheetTitle" style="color: var(--primary); text-align: center; margin-bottom: 12px;"></h2>
+            
+            <div class="filter-bar no-pdf">
+                <label for="categoryFilter">🔍 Filtrar por Categoria:</label>
+                <select id="categoryFilter" onchange="renderTable()">
+                    <option value="TODAS">Todas as Categorias</option>
+                </select>
             </div>
 
-            <button type="submit" class="form-submit-btn">+ Adicionar À Lista</button>
-        </div>
-    </form>
-
-    <div id="pdfContent">
-        <h2 id="currentSheetTitle" style="color: var(--primary); text-align: center; margin-bottom: 12px;"></h2>
-        
-        <div class="filter-bar no-pdf">
-            <label for="categoryFilter">🔍 Filtrar por Categoria:</label>
-            <select id="categoryFilter" onchange="renderTable()">
-                <option value="TODAS">Todas as Categorias</option>
-            </select>
-        </div>
-
-        <div class="table-responsive">
-            <table id="gibiTable">
-                <thead>
-                    <tr>
-                        <th class="capa-cell">Capa</th>
-                        <th>Nº</th>
-                        <th>Editora</th>
-                        <th>Categoria</th>
-                        <th>Série/Fase</th>
-                        <th>Data</th>
-                        <th>Estado</th>
-                        <th class="actions-cell no-pdf">Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody"></tbody>
-            </table>
+            <div class="table-responsive">
+                <table id="gibiTable">
+                    <thead>
+                        <tr>
+                            <th class="capa-cell">Capa</th>
+                            <th>Nº</th>
+                            <th>Editora</th>
+                            <th>Categoria</th>
+                            <th>Série/Fase</th>
+                            <th>Data</th>
+                            <th>Estado</th>
+                            <th class="actions-cell no-pdf">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -316,20 +341,21 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-    // INSIRA AS SUAS CONFIGURAÇÕES DO FIREBASE AQUI
     const firebaseConfig = {
-		apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
-		authDomain: "gibis-da-bibi.firebaseapp.com",
-		projectId: "gibis-da-bibi",
-		storageBucket: "gibis-da-bibi.firebasestorage.app",
-		messagingSenderId: "1069619452025",
-		appId: "1:1069619452025:web:82d0743ae68029df595ca8"
-};
+        apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
+        authDomain: "gibis-da-bibi.firebaseapp.com",
+        projectId: "gibis-da-bibi",
+        storageBucket: "gibis-da-bibi.firebasestorage.app",
+        messagingSenderId: "1069619452025",
+        appId: "1:1069619452025:web:82d0743ae68029df595ca8"
+    };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    const storage = getStorage(app);
 
     let fundosPersonagens = { "default": "" };
     let database = { "Chico Bento": [] };
@@ -337,25 +363,31 @@
     let editingIndex = null;
     let currentUser = null;
 
-    // Monitorar Autenticação
+    // Monitorar Autenticação (Acesso Obrigatório)
     onAuthStateChanged(auth, async (user) => {
         currentUser = user;
         const statusEl = document.getElementById('userStatus');
         const loginBtn = document.getElementById('btnLogin');
         const logoutBtn = document.getElementById('btnLogout');
+        const loginPrompt = document.getElementById('loginPrompt');
+        const appContent = document.getElementById('appContent');
 
         if (user) {
             statusEl.innerText = `Olá, ${user.displayName || user.email}`;
             loginBtn.style.display = 'none';
             logoutBtn.style.display = 'inline-block';
+            loginPrompt.style.display = 'none';
+            appContent.style.display = 'block';
+            
             await loadUserData();
+            init();
         } else {
-            statusEl.innerText = "Modo Convidado (Local)";
+            statusEl.innerText = "Login necessário";
             loginBtn.style.display = 'inline-block';
             logoutBtn.style.display = 'none';
-            loadLocalData();
+            loginPrompt.style.display = 'block';
+            appContent.style.display = 'none';
         }
-        init();
     });
 
     window.loginWithGoogle = function() {
@@ -369,6 +401,17 @@
         signOut(auth);
     };
 
+    // Função para upload de capa no Firebase Storage
+    async function uploadCapaToStorage(file) {
+        if (!file || !currentUser) return "";
+        const fileExtension = file.name.split('.').pop();
+        const fileName = `capa_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExtension}`;
+        const storageRef = ref(storage, `capas/${currentUser.uid}/${fileName}`);
+        
+        await uploadBytes(storageRef, file);
+        return await getDownloadURL(storageRef);
+    }
+
     async function saveData() { 
         if (currentUser) {
             try {
@@ -378,14 +421,13 @@
                 });
             } catch (err) {
                 console.error("Erro ao salvar no Firebase:", err);
+                alert("Erro ao salvar dados no servidor.");
             }
-        } else {
-            localStorage.setItem('gibisDB_v3', JSON.stringify(database)); 
-            localStorage.setItem('gibisFundos_v3', JSON.stringify(fundosPersonagens)); 
         }
     }
 
     async function loadUserData() {
+        if (!currentUser) return;
         try {
             const docRef = doc(db, "users", currentUser.uid);
             const docSnap = await getDoc(docRef);
@@ -395,18 +437,13 @@
                 database = data.database || { "Chico Bento": [] };
                 fundosPersonagens = data.fundosPersonagens || { "default": "" };
             } else {
-                loadLocalData();
+                database = { "Chico Bento": [] };
+                fundosPersonagens = { "default": "" };
                 await saveData();
             }
         } catch (err) {
             console.error("Erro ao carregar do Firebase:", err);
-            loadLocalData();
         }
-    }
-
-    function loadLocalData() {
-        fundosPersonagens = JSON.parse(localStorage.getItem('gibisFundos_v3')) || { "default": "" };
-        database = JSON.parse(localStorage.getItem('gibisDB_v3')) || { "Chico Bento": [] };
     }
 
     function init() { 
@@ -493,38 +530,43 @@
         init(); 
     };
 
-    function convertFileToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-            reader.readAsDataURL(file);
-        });
-    }
-
     window.addGibi = async function(event) {
         event.preventDefault();
+        if (!currentUser) return alert("Sua sessão expirou. Faça login novamente.");
+
+        const submitBtn = document.getElementById('btnSubmitForm');
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Salvando...";
+
         const fileInput = document.getElementById('capaInput');
-        let capaBase64 = "";
+        let capaUrl = "";
 
-        if (fileInput.files && fileInput.files[0]) {
-            capaBase64 = await convertFileToBase64(fileInput.files[0]);
+        try {
+            if (fileInput.files && fileInput.files[0]) {
+                capaUrl = await uploadCapaToStorage(fileInput.files[0]);
+            }
+
+            database[currentSheet].push({
+                capa: capaUrl,
+                editora: document.getElementById('editora').value,
+                categoria: document.getElementById('categoria').value,
+                serie: document.getElementById('serie').value,
+                numero: parseInt(document.getElementById('numero').value),
+                data: document.getElementById('data').value,
+                estado: document.getElementById('estado').value
+            });
+
+            await saveData(); 
+            updateCategoryFilterOptions();
+            renderTable(); 
+            document.getElementById('addGibiForm').reset();
+        } catch (error) {
+            console.error("Erro ao adicionar gibi:", error);
+            alert("Erro ao salvar o gibi. Tente novamente.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "+ Adicionar À Lista";
         }
-
-        database[currentSheet].push({
-            capa: capaBase64,
-            editora: document.getElementById('editora').value,
-            categoria: document.getElementById('categoria').value,
-            serie: document.getElementById('serie').value,
-            numero: parseInt(document.getElementById('numero').value),
-            data: document.getElementById('data').value,
-            estado: document.getElementById('estado').value
-        });
-
-        saveData(); 
-        updateCategoryFilterOptions();
-        renderTable(); 
-        document.getElementById('addGibiForm').reset();
     };
 
     window.deleteGibi = function(index) {
@@ -541,27 +583,34 @@
     window.cancelEdit = function() { editingIndex = null; renderTable(); };
 
     window.saveEdit = async function(index) {
+        if (!currentUser) return alert("Sua sessão expirou. Faça login novamente.");
+
         const fileInput = document.getElementById(`editCapa_${index}`);
-        let capaBase64 = database[currentSheet][index].capa;
+        let capaUrl = database[currentSheet][index].capa;
 
-        if (fileInput && fileInput.files && fileInput.files[0]) {
-            capaBase64 = await convertFileToBase64(fileInput.files[0]);
+        try {
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                capaUrl = await uploadCapaToStorage(fileInput.files[0]);
+            }
+
+            database[currentSheet][index] = {
+                capa: capaUrl,
+                numero: parseInt(document.getElementById(`editNumero_${index}`).value),
+                editora: document.getElementById(`editEditora_${index}`).value,
+                categoria: document.getElementById(`editCategoria_${index}`).value,
+                serie: document.getElementById(`editSerie_${index}`).value,
+                data: document.getElementById(`editData_${index}`).value,
+                estado: document.getElementById(`editEstado_${index}`).value
+            };
+
+            editingIndex = null;
+            await saveData();
+            updateCategoryFilterOptions();
+            renderTable();
+        } catch (error) {
+            console.error("Erro ao editar gibi:", error);
+            alert("Erro ao salvar as edições.");
         }
-
-        database[currentSheet][index] = {
-            capa: capaBase64,
-            numero: parseInt(document.getElementById(`editNumero_${index}`).value),
-            editora: document.getElementById(`editEditora_${index}`).value,
-            categoria: document.getElementById(`editCategoria_${index}`).value,
-            serie: document.getElementById(`editSerie_${index}`).value,
-            data: document.getElementById(`editData_${index}`).value,
-            estado: document.getElementById(`editEstado_${index}`).value
-        };
-
-        editingIndex = null;
-        saveData();
-        updateCategoryFilterOptions();
-        renderTable();
     };
 
     window.renderTable = function() {
@@ -667,7 +716,7 @@
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
         };
 
-        html2pdf().set(opt).from(element).save().then(() => { 
+        html2pdf().set(opt).from(element).save().finally(() => { 
             actionCols.forEach(el => el.style.display = ''); 
         });
     };
