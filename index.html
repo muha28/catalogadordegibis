@@ -3,170 +3,301 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gibis da Bibi</title>
+  <title>Catalogador de Gibis</title>
   <style>
+    :root {
+      --primary-color: #2c3e50;
+      --secondary-color: #3498db;
+      --success-color: #27ae60;
+      --danger-color: #e74c3c;
+      --light-bg: #ecf0f1;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background-color: #f4f4f9;
-      color: #333;
+      background-color: var(--light-bg);
+      color: var(--text-color);
+      padding-bottom: 30px;
     }
-    h1 {
+
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 15px 20px;
       text-align: center;
-      color: #4a4e69;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
-    .auth-box {
-      background: #fff;
-      padding: 30px;
+
+    header h1 {
+      font-size: 1.6rem;
+      margin-bottom: 5px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 0 15px;
+    }
+
+    /* Tela de Autenticação */
+    .auth-container {
+      background-color: var(--card-bg);
       border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      max-width: 350px;
-      margin: 50px auto;
+      padding: 30px;
       text-align: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-top: 50px;
     }
+
+    .auth-container h2 {
+      margin-bottom: 15px;
+      color: var(--primary-color);
+    }
+
+    .auth-container p {
+      color: #666;
+      margin-bottom: 20px;
+    }
+
     .btn-google {
       background-color: #4285f4;
       color: white;
       border: none;
-      padding: 12px 20px;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
+      padding: 12px 24px;
+      font-size: 1rem;
       font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.2s;
       width: 100%;
-      margin-top: 15px;
+      max-width: 280px;
     }
+
+    .btn-google:hover {
+      background-color: #357ae8;
+    }
+
+    /* Barra de Usuário */
     .user-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #fff;
-      padding: 10px 15px;
+      background-color: var(--card-bg);
+      padding: 12px 20px;
       border-radius: 8px;
       margin-bottom: 20px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
+
     .btn-logout {
-      background-color: #999;
+      background-color: var(--danger-color);
       color: white;
       border: none;
       padding: 6px 12px;
       border-radius: 4px;
       cursor: pointer;
+      font-weight: bold;
     }
-    .form-group, .search-group {
-      background: #fff;
+
+    /* Formulário de Cadastro e Busca */
+    .section-card {
+      background-color: var(--card-bg);
+      border-radius: 8px;
       padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    input[type="text"], input[type="number"], input[type="file"] {
+
+    .section-card h2 {
+      font-size: 1.2rem;
+      color: var(--primary-color);
+      margin-bottom: 15px;
+      border-bottom: 2px solid var(--light-bg);
+      padding-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .form-control {
       width: 100%;
       padding: 10px;
-      margin: 8px 0;
       border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
+      border-radius: 5px;
+      font-size: 1rem;
     }
-    button.btn-primary {
-      width: 100%;
-      background-color: #9a8c98;
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--secondary-color);
+    }
+
+    .btn-submit {
+      background-color: var(--success-color);
       color: white;
-      padding: 10px;
       border: none;
-      border-radius: 4px;
+      padding: 12px;
+      width: 100%;
+      border-radius: 5px;
+      font-size: 1rem;
+      font-weight: bold;
       cursor: pointer;
-      font-size: 16px;
+      transition: background 0.2s;
     }
-    button.btn-primary:hover {
-      background-color: #4a4e69;
+
+    .btn-submit:hover {
+      background-color: #219150;
     }
-    .gibi-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
+
+    /* Listagem de Gibis em Grid */
+    .gibi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
     }
+
     .gibi-card {
-      background: #fff;
+      background-color: var(--card-bg);
       border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      width: 180px;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 10px;
       text-align: center;
+      position: relative;
     }
+
     .gibi-card img {
-      max-width: 100%;
-      height: 220px;
+      width: 100%;
+      height: 200px;
       object-fit: cover;
       border-radius: 4px;
+      margin-bottom: 10px;
+      background-color: #eee;
     }
+
     .gibi-card h3 {
-      font-size: 16px;
-      margin: 10px 0 5px 0;
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+      color: var(--primary-color);
+      line-height: 1.2;
     }
+
     .gibi-card p {
-      margin: 0;
-      color: #666;
+      font-size: 0.85rem;
+      color: #777;
+      margin-bottom: 8px;
     }
+
     .btn-delete {
-      background-color: #e63946;
+      background-color: var(--danger-color);
       color: white;
       border: none;
-      padding: 5px 10px;
+      padding: 4px 8px;
       border-radius: 4px;
+      font-size: 0.8rem;
       cursor: pointer;
-      margin-top: 10px;
+      margin-top: auto;
+      width: 100%;
     }
-    #loading {
+
+    #loadingScreen, #loadingData {
       text-align: center;
-      font-size: 16px;
-      color: #4a4e69;
+      padding: 20px;
+      font-weight: bold;
+      color: var(--primary-color);
     }
   </style>
 </head>
 <body>
 
-  <h1>📚 Gibis da Bibi</h1>
+  <header>
+    <h1>📚 Catalogador de Gibis</h1>
+  </header>
 
-  <!-- Tela de Login -->
-  <div id="authArea" class="auth-box">
-    <h2>Acesso ao Acervo</h2>
-    <p>Entrar com sua conta do Google para acessar e sincronizar seus gibis na nuvem.</p>
-    <button class="btn-google" onclick="loginGoogle()">Entrar com o Google</button>
+  <div class="container">
+
+    <!-- Carregamento Inicial -->
+    <div id="loadingScreen">
+      <p>Carregando aplicativo...</p>
+    </div>
+
+    <!-- Tela de Login -->
+    <div id="authArea" class="auth-container" style="display: none;">
+      <h2>Bem-vindo!</h2>
+      <p>Faça login com sua conta do Google para sincronizar e gerenciar sua coleção de gibis na nuvem.</p>
+      <button class="btn-google" onclick="loginGoogle()">Entrar com o Google</button>
+      <p id="status-msg" style="margin-top: 15px; font-size: 0.9rem; color: #e74c3c;"></p>
+    </div>
+
+    <!-- Conteúdo do App -->
+    <div id="appArea" style="display: none;">
+      
+      <div class="user-bar">
+        <span id="userName" style="font-weight: bold; color: var(--primary-color);">Usuário</span>
+        <button class="btn-logout" onclick="logout()">Sair</button>
+      </div>
+
+      <!-- Formulário de Cadastro -->
+      <div class="section-card">
+        <h2>Cadastrar Gibi</h2>
+        <div class="form-group">
+          <label for="titulo">Título do Gibi</label>
+          <input type="text" id="titulo" class="form-control" placeholder="Ex: Turma da Mônica, Homem-Aranha..." required>
+        </div>
+        <div class="form-group">
+          <label for="numero">Número da Edição</label>
+          <input type="number" id="numero" class="form-control" placeholder="Ex: 1, 50, 100..." required>
+        </div>
+        <div class="form-group">
+          <label for="foto">Foto da Capa</label>
+          <input type="file" id="foto" class="form-control" accept="image/*" capture="environment">
+        </div>
+        <button id="btnSalvar" class="btn-submit" onclick="salvarGibi()">Salvar na Coleção</button>
+      </div>
+
+      <!-- Busca e Filtros -->
+      <div class="section-card">
+        <h2>Sua Coleção</h2>
+        <div class="form-group">
+          <input type="text" id="busca" class="form-control" placeholder="🔍 Buscar por título ou número..." oninput="filtrarGibis()">
+        </div>
+        
+        <div id="loadingData" style="display: none;">Buscando seus gibis...</div>
+        <div class="gibi-grid" id="listaGibis"></div>
+      </div>
+
+    </div>
+
   </div>
 
-  <!-- Interface Principal do App -->
-  <div id="appArea" style="display: none;">
-    <div class="user-bar">
-      <span id="userName" style="font-weight: bold;">Usuário</span>
-      <button class="btn-logout" onclick="logout()">Sair</button>
-    </div>
-
-    <div class="form-group">
-      <h2>Cadastrar Novo Gibi</h2>
-      <input type="text" id="titulo" placeholder="Título do Gibi (ex: Turma da Mônica)" required>
-      <input type="number" id="numero" placeholder="Número da Edição" required>
-      <input type="file" id="foto" accept="image/*" capture="environment">
-      <button id="btnSalvar" class="btn-primary" onclick="salvarGibi()">Salvar Gibi</button>
-    </div>
-
-    <div class="search-group">
-      <input type="text" id="busca" placeholder="🔍 Buscar gibi por título ou número..." oninput="filtrarGibis()">
-    </div>
-
-    <div id="loading">Carregando acervo...</div>
-    <div class="gibi-list" id="listaGibis"></div>
-  </div>
-
-  <!-- Firebase v9 Modular -->
+  <!-- Firebase v9 Modulo de Código -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { 
       getAuth, 
       setPersistence, 
-      browserLocalPersistence, 
-      signInWithPopup, 
+      indexedDBLocalPersistence, 
+      signInWithRedirect, 
+      getRedirectResult, 
       GoogleAuthProvider, 
       signOut, 
       onAuthStateChanged 
@@ -187,19 +318,32 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
-    // Garante persistência permanente da sessão
-    setPersistence(auth, browserLocalPersistence).catch(console.error);
+    // Persistência com suporte a WebView
+    setPersistence(auth, indexedDBLocalPersistence).catch(console.error);
 
     let currentUser = null;
     let todosGibis = [];
 
-    // Monitora autenticação
+    // Checa retorno do login
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
+          console.log("Autenticado:", result.user);
+        }
+      })
+      .catch((error) => {
+        console.error("Erro no redirecionamento:", error);
+        document.getElementById("status-msg").innerText = "Falha na autenticação. Tente novamente.";
+      });
+
+    // Monitora usuário logado
     onAuthStateChanged(auth, (user) => {
+      document.getElementById("loadingScreen").style.display = "none";
       if (user) {
         currentUser = user;
         document.getElementById("authArea").style.display = "none";
         document.getElementById("appArea").style.display = "block";
-        document.getElementById("userName").innerText = `Olá, ${user.displayName || user.email}`;
+        document.getElementById("userName").innerText = user.displayName || user.email;
         carregarGibis();
       } else {
         currentUser = null;
@@ -208,15 +352,9 @@
       }
     });
 
-    // Login via Pop-up direto
-    window.loginGoogle = async function() {
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (error) {
-        if (error.code !== "auth/popup-closed-by-user") {
-          alert("Erro no login: " + error.message);
-        }
-      }
+    window.loginGoogle = function() {
+      document.getElementById("status-msg").innerText = "Aguarde, redirecionando para o Google...";
+      signInWithRedirect(auth, provider);
     };
 
     window.logout = function() {
@@ -225,7 +363,7 @@
 
     async function carregarGibis() {
       if (!currentUser) return;
-      const loading = document.getElementById("loading");
+      const loading = document.getElementById("loadingData");
       loading.style.display = "block";
 
       try {
@@ -247,13 +385,19 @@
     window.exibirGibis = function(lista) {
       const grid = document.getElementById("listaGibis");
       grid.innerHTML = "";
+      
+      if (lista.length === 0) {
+        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #888;">Nenhum gibi encontrado.</p>`;
+        return;
+      }
+
       lista.forEach(gibi => {
         const card = document.createElement("div");
         card.className = "gibi-card";
         card.innerHTML = `
           <img src="${gibi.capa || 'https://via.placeholder.com/150?text=Sem+Capa'}" alt="Capa">
           <h3>${gibi.titulo}</h3>
-          <p>Nº ${gibi.numero}</p>
+          <p>Edição Nº ${gibi.numero}</p>
           <button class="btn-delete" onclick="deletarGibi('${gibi.id}')">Excluir</button>
         `;
         grid.appendChild(card);
@@ -267,7 +411,7 @@
       const btnSalvar = document.getElementById("btnSalvar");
 
       if (!titulo || !numero) {
-        alert("Por favor, preencha o título e o número!");
+        alert("Por favor, preencha o título e o número da edição!");
         return;
       }
 
@@ -301,7 +445,7 @@
         alert("Erro ao salvar no banco de dados: " + e.message);
       } finally {
         btnSalvar.disabled = false;
-        btnSalvar.innerText = "Salvar Gibi";
+        btnSalvar.innerText = "Salvar na Coleção";
       }
     };
 
