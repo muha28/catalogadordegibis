@@ -23,7 +23,6 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            transition: background-image 0.5s ease-in-out; 
             margin: 0; 
             padding: 20px; 
             color: var(--text); 
@@ -45,6 +44,43 @@
             border: 2px solid var(--primary); 
         }
 
+        /* Tela de Autenticação Obrigatória */
+        .auth-gate {
+            max-width: 450px;
+            margin: 80px auto;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .auth-gate h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .auth-gate p {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 25px;
+        }
+
+        .btn-google-large {
+            background-color: #4285F4;
+            color: white;
+            font-size: 16px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3);
+        }
+
+        .btn-google-large:hover {
+            background-color: #357ae8;
+        }
+
         h1 { 
             color: var(--primary); 
             margin-top: 0; 
@@ -55,19 +91,13 @@
 
         .auth-bar {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
             margin-bottom: 15px;
             font-size: 14px;
-        }
-
-        .btn-auth {
-            background-color: #4285F4;
-            color: white;
-        }
-        .btn-auth:hover {
-            background-color: #357ae8;
+            background: rgba(233, 236, 239, 0.6);
+            padding: 10px 15px;
+            border-radius: 8px;
         }
 
         .controls { 
@@ -242,11 +272,20 @@
 </head>
 <body>
 
-<div class="container">
+<!-- Tela de Login Obrigatório -->
+<div id="loginScreen" class="container auth-gate">
+    <h1>📚 Catalogador de Gibis</h1>
+    <p>Acesse com sua conta do Google para visualizar e gerenciar sua coleção na nuvem.</p>
+    <button class="btn-google-large" onclick="loginWithGoogle()">
+        🔑 Entrar com o Google
+    </button>
+</div>
+
+<!-- Painel Principal (Oculto até autenticar) -->
+<div id="mainApp" class="container" style="display: none;">
     <div class="auth-bar">
-        <span id="userStatus">Carregando usuário...</span>
-        <button id="btnLogin" class="btn-auth" onclick="loginWithGoogle()">🔑 Login Google</button>
-        <button id="btnLogout" class="btn-restore" onclick="logout()" style="display:none;">Sair</button>
+        <span id="userStatus">Carregando...</span>
+        <button class="btn-restore" onclick="logout()">Sair</button>
     </div>
 
     <h1>📚 Meu Catalogador de Gibis</h1>
@@ -318,12 +357,12 @@
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
-		apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
-		authDomain: "gibis-da-bibi.firebaseapp.com",
-		projectId: "gibis-da-bibi",
-		storageBucket: "gibis-da-bibi.firebasestorage.app",
-		messagingSenderId: "1069619452025",
-		appId: "1:1069619452025:web:82d0743ae68029df595ca8"
+        apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
+        authDomain: "gibis-da-bibi.firebaseapp.com",
+        projectId: "gibis-da-bibi",
+        storageBucket: "gibis-da-bibi.firebasestorage.app",
+        messagingSenderId: "1069619452025",
+        appId: "1:1069619452025:web:82d0743ae68029df595ca8"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -331,30 +370,31 @@
     const db = getFirestore(app);
 
     let fundosPersonagens = { "default": "" };
-    let database = { "Chico Bento": [] };
-    let currentSheet = "Chico Bento";
+    let database = {};
+    let currentSheet = "";
     let editingIndex = null;
     let currentUser = null;
 
-    // Monitorar Autenticação de forma assíncrona
+    // Monitoramento estrito do estado de autenticação
     onAuthStateChanged(auth, async (user) => {
-        currentUser = user;
+        const loginScreen = document.getElementById('loginScreen');
+        const mainApp = document.getElementById('mainApp');
         const statusEl = document.getElementById('userStatus');
-        const loginBtn = document.getElementById('btnLogin');
-        const logoutBtn = document.getElementById('btnLogout');
 
         if (user) {
-            statusEl.innerText = `Olá, ${user.displayName || user.email}`;
-            loginBtn.style.display = 'none';
-            logoutBtn.style.display = 'inline-block';
+            currentUser = user;
+            statusEl.innerText = `Usuário: ${user.displayName || user.email}`;
+            loginScreen.style.display = 'none';
+            mainApp.style.display = 'block';
+            
             await loadUserData();
+            init();
         } else {
-            statusEl.innerText = "Modo Convidado (Local)";
-            loginBtn.style.display = 'inline-block';
-            logoutBtn.style.display = 'none';
-            loadLocalData();
+            currentUser = null;
+            database = {};
+            loginScreen.style.display = 'block';
+            mainApp.style.display = 'none';
         }
-        init();
     });
 
     window.loginWithGoogle = function() {
@@ -369,18 +409,15 @@
     };
 
     async function saveData() { 
-        if (currentUser) {
-            try {
-                await setDoc(doc(db, "users", currentUser.uid), {
-                    database: database,
-                    fundosPersonagens: fundosPersonagens
-                });
-            } catch (err) {
-                console.error("Erro ao salvar no Firebase:", err);
-            }
-        } else {
-            localStorage.setItem('gibisDB_v3', JSON.stringify(database)); 
-            localStorage.setItem('gibisFundos_v3', JSON.stringify(fundosPersonagens)); 
+        if (!currentUser) return;
+        try {
+            await setDoc(doc(db, "users", currentUser.uid), {
+                database: database,
+                fundosPersonagens: fundosPersonagens
+            });
+        } catch (err) {
+            console.error("Erro ao salvar dados no Firebase:", err);
+            alert("Erro ao salvar alterações no banco de dados.");
         }
     }
 
@@ -394,18 +431,14 @@
                 database = data.database || { "Chico Bento": [] };
                 fundosPersonagens = data.fundosPersonagens || { "default": "" };
             } else {
-                loadLocalData();
+                database = { "Chico Bento": [] };
+                fundosPersonagens = { "default": "" };
                 await saveData();
             }
         } catch (err) {
-            console.error("Erro ao carregar do Firebase:", err);
-            loadLocalData();
+            console.error("Erro ao carregar dados do Firebase:", err);
+            database = { "Chico Bento": [] };
         }
-    }
-
-    function loadLocalData() {
-        fundosPersonagens = JSON.parse(localStorage.getItem('gibisFundos_v3')) || { "default": "" };
-        database = JSON.parse(localStorage.getItem('gibisDB_v3')) || { "Chico Bento": [] };
     }
 
     function init() { 
@@ -502,7 +535,7 @@
     }
 
     window.addGibi = async function(event) {
-        event.preventDefault(); // Impede o recarregamento automático da página
+        event.preventDefault();
         const fileInput = document.getElementById('capaInput');
         let capaBase64 = "";
 
@@ -524,7 +557,7 @@
             estado: document.getElementById('estado').value
         });
 
-        await saveData(); // Garante o salvamento no Firestore/LocalStorage antes de renderizar
+        await saveData();
         updateCategoryFilterOptions();
         renderTable(); 
         document.getElementById('addGibiForm').reset();
