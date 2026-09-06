@@ -167,7 +167,6 @@
       setPersistence, 
       browserLocalPersistence, 
       signInWithPopup, 
-      signInWithRedirect,
       GoogleAuthProvider, 
       signOut, 
       onAuthStateChanged 
@@ -188,15 +187,13 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
+    // Garante persistência permanente da sessão
+    setPersistence(auth, browserLocalPersistence).catch(console.error);
+
     let currentUser = null;
     let todosGibis = [];
 
-    // Tenta definir persistência de sessão contínua
-    setPersistence(auth, browserLocalPersistence).catch((error) => {
-      console.error("Erro na persistência:", error);
-    });
-
-    // Monitora o estado de autenticação
+    // Monitora autenticação
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
@@ -211,16 +208,13 @@
       }
     });
 
-    // Função com Fallback inteligente para tentar Pop-up e depois Redirecionamento
+    // Login via Pop-up direto
     window.loginGoogle = async function() {
       try {
         await signInWithPopup(auth, provider);
       } catch (error) {
-        console.warn("Pop-up falhou, tentando redirecionamento...", error);
-        try {
-          await signInWithRedirect(auth, provider);
-        } catch (err) {
-          alert("Erro de conexão ao realizar login: " + err.message);
+        if (error.code !== "auth/popup-closed-by-user") {
+          alert("Erro no login: " + error.message);
         }
       }
     };
