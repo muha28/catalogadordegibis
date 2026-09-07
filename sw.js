@@ -1,6 +1,6 @@
 // sw.js - Service Worker básico para ativar o prompt de instalação PWA
 
-const CACHE_NAME = 'gibis-app-v3';
+const CACHE_NAME = 'gibis-app-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
