@@ -27,7 +27,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Força a persistência local da sessão (evita perder o login ao redirecionar)
+// Força a persistência local da sessão
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 let fundosPersonagens = { "default": "" };
@@ -35,6 +35,38 @@ let database = {};
 let currentSheet = "";
 let editingIndex = null;
 let currentUser = null;
+
+// Função auxiliar para redimensionar imagens e economizar espaço
+function compressImage(file, maxWidth = 600) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    resolve(blob || file);
+                }, 'image/jpeg', 0.85);
+            };
+            img.onerror = () => resolve(file);
+        };
+        reader.onerror = () => resolve(file);
+    });
+}
 
 // Processa o retorno do login por redirecionamento
 async function handleAuthRedirect() {
@@ -191,13 +223,16 @@ function updateCategoryFilterOptions() {
 
 window.createNewSheet = async function() {
     const name = prompt("Nome do Personagem/Lista:");
-    if (name && !database[name]) {
-        database[name] = []; 
-        currentSheet = name;
-        await saveData(); 
-        init();
-    } else if (database[name]) { 
-        alert("Esta lista já existe!"); 
+    if (name && name.trim() !== "") {
+        const cleanName = name.trim();
+        if (!database[cleanName]) {
+            database[cleanName] = []; 
+            currentSheet = cleanName;
+            await saveData(); 
+            init();
+        } else { 
+            alert("Esta lista já existe!"); 
+        }
     }
 };
 
@@ -225,8 +260,9 @@ window.changeSheet = function() {
 async function uploadCapa(file) {
     if (!file || !currentUser) return "";
     try {
-        const storageRef = ref(storage, `capas/${currentUser.uid}/${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
+        const compressedFile = await compressImage(file);
+        const storageRef = ref(storage, `capas/${currentUser.uid}/${Date.now()}_${file.name.replace(/\s+/g, '_')}`);
+        const snapshot = await uploadBytes(storageRef, compressedFile);
         return await getDownloadURL(snapshot.ref);
     } catch (err) {
         console.error("Erro ao enviar imagem:", err);
@@ -237,31 +273,38 @@ async function uploadCapa(file) {
 
 window.addGibi = async function(event) {
     event.preventDefault();
-    const fileInput = document.getElementById('capaInput');
-    let capaURL = "";
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
 
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-        capaURL = await uploadCapa(fileInput.files[0]);
+    try {
+        const fileInput = document.getElementById('capaInput');
+        let capaURL = "";
+
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            capaURL = await uploadCapa(fileInput.files[0]);
+        }
+
+        if (!database[currentSheet]) {
+            database[currentSheet] = [];
+        }
+
+        database[currentSheet].push({
+            capa: capaURL,
+            editora: document.getElementById('editora').value.trim(),
+            categoria: document.getElementById('categoria').value.trim(),
+            serie: document.getElementById('serie').value.trim(),
+            numero: parseInt(document.getElementById('numero').value) || 0,
+            data: document.getElementById('data').value.trim(),
+            estado: document.getElementById('estado').value.trim()
+        });
+
+        await saveData();
+        updateCategoryFilterOptions();
+        renderTable(); 
+        document.getElementById('addGibiForm').reset();
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
     }
-
-    if (!database[currentSheet]) {
-        database[currentSheet] = [];
-    }
-
-    database[currentSheet].push({
-        capa: capaURL,
-        editora: document.getElementById('editora').value,
-        categoria: document.getElementById('categoria').value,
-        serie: document.getElementById('serie').value,
-        numero: parseInt(document.getElementById('numero').value) || 0,
-        data: document.getElementById('data').value,
-        estado: document.getElementById('estado').value
-    });
-
-    await saveData();
-    updateCategoryFilterOptions();
-    renderTable(); 
-    document.getElementById('addGibiForm').reset();
 };
 
 window.deleteGibi = async function(index) {
@@ -288,11 +331,11 @@ window.saveEdit = async function(index) {
     database[currentSheet][index] = {
         capa: capaURL,
         numero: parseInt(document.getElementById(`editNumero_${index}`).value) || 0,
-        editora: document.getElementById(`editEditora_${index}`).value,
-        categoria: document.getElementById(`editCategoria_${index}`).value,
-        serie: document.getElementById(`editSerie_${index}`).value,
-        data: document.getElementById(`editData_${index}`).value,
-        estado: document.getElementById(`editEstado_${index}`).value
+        editora: document.getElementById(`editEditora_${index}`).value.trim(),
+        categoria: document.getElementById(`editCategoria_${index}`).value.trim(),
+        serie: document.getElementById(`editSerie_${index}`).value.trim(),
+        data: document.getElementById(`editData_${index}`).value.trim(),
+        estado: document.getElementById(`editEstado_${index}`).value.trim()
     };
 
     editingIndex = null;
@@ -357,42 +400,92 @@ window.renderTable = function() {
 
     itemsToRender.forEach((item) => {
         const indexNoBanco = database[currentSheet].indexOf(item);
-        
+        const tr = document.createElement('tr');
+
         if (editingIndex === indexNoBanco) {
-            tbody.innerHTML += `<tr>
+            tr.innerHTML = `
                 <td class="capa-cell"><input type="file" id="editCapa_${indexNoBanco}" accept="image/*" style="font-size:10px; width:70px;"></td>
                 <td><strong>${currentSheet}</strong></td>
-                <td><input type="number" id="editNumero_${indexNoBanco}" value="${item.numero}"></td>
-                <td><input type="text" id="editEditora_${indexNoBanco}" value="${item.editora}"></td>
-                <td><input type="text" id="editCategoria_${indexNoBanco}" value="${item.categoria}"></td>
-                <td><input type="text" id="editSerie_${indexNoBanco}" value="${item.serie}"></td>
-                <td><input type="text" id="editData_${indexNoBanco}" value="${item.data}"></td>
-                <td><input type="text" id="editEstado_${indexNoBanco}" value="${item.estado}"></td>
+                <td><input type="number" id="editNumero_${indexNoBanco}"></td>
+                <td><input type="text" id="editEditora_${indexNoBanco}"></td>
+                <td><input type="text" id="editCategoria_${indexNoBanco}"></td>
+                <td><input type="text" id="editSerie_${indexNoBanco}"></td>
+                <td><input type="text" id="editData_${indexNoBanco}"></td>
+                <td><input type="text" id="editEstado_${indexNoBanco}"></td>
                 <td class="actions-cell no-pdf">
                     <button class="btn-save" onclick="saveEdit(${indexNoBanco})">Salvar</button>
                     <button class="btn-cancel" onclick="cancelEdit()">X</button>
                 </td>
-            </tr>`;
-        } else {
-            const capaHTML = item.capa 
-                ? `<img src="${item.capa}" class="capa-thumb" alt="Capa Nº ${item.numero}" onclick="openImageModal('${item.capa}')" title="Clique para ampliar">`
-                : `<div class="capa-placeholder">Sem capa</div>`;
+            `;
 
-            tbody.innerHTML += `<tr>
-                <td class="capa-cell">${capaHTML}</td>
-                <td><strong>${currentSheet}</strong></td>
-                <td class="numero-cell">Nº ${item.numero}</td>
-                <td>${item.editora}</td>
-                <td>${item.categoria}</td>
-                <td>${item.serie}</td>
-                <td>${item.data}</td>
-                <td>${item.estado}</td>
-                <td class="actions-cell no-pdf">
-                    <button class="btn-edit" onclick="startEdit(${indexNoBanco})">Editar</button>
-                    <button class="btn-delete" onclick="deleteGibi(${indexNoBanco})">Excluir</button>
-                </td>
-            </tr>`;
+            // Atribui os valores de forma segura para evitar quebra de strings com aspas
+            tr.querySelector(`#editNumero_${indexNoBanco}`).value = item.numero;
+            tr.querySelector(`#editEditora_${indexNoBanco}`).value = item.editora || '';
+            tr.querySelector(`#editCategoria_${indexNoBanco}`).value = item.categoria || '';
+            tr.querySelector(`#editSerie_${indexNoBanco}`).value = item.serie || '';
+            tr.querySelector(`#editData_${indexNoBanco}`).value = item.data || '';
+            tr.querySelector(`#editEstado_${indexNoBanco}`).value = item.estado || '';
+
+        } else {
+            const tdCapa = document.createElement('td');
+            tdCapa.className = 'capa-cell';
+
+            if (item.capa) {
+                const img = document.createElement('img');
+                img.src = item.capa;
+                img.className = 'capa-thumb';
+                img.alt = `Capa Nº ${item.numero}`;
+                img.title = 'Clique para ampliar';
+                img.onclick = () => openImageModal(item.capa);
+                tdCapa.appendChild(img);
+            } else {
+                const div = document.createElement('div');
+                div.className = 'capa-placeholder';
+                div.textContent = 'Sem capa';
+                tdCapa.appendChild(div);
+            }
+
+            const tdPersonagem = document.createElement('td');
+            tdPersonagem.innerHTML = `<strong>${currentSheet}</strong>`;
+
+            const tdNumero = document.createElement('td');
+            tdNumero.className = 'numero-cell';
+            tdNumero.textContent = `Nº ${item.numero}`;
+
+            const tdEditora = document.createElement('td');
+            tdEditora.textContent = item.editora || '';
+
+            const tdCategoria = document.createElement('td');
+            tdCategoria.textContent = item.categoria || '';
+
+            const tdSerie = document.createElement('td');
+            tdSerie.textContent = item.serie || '';
+
+            const tdData = document.createElement('td');
+            tdData.textContent = item.data || '';
+
+            const tdEstado = document.createElement('td');
+            tdEstado.textContent = item.estado || '';
+
+            const tdActions = document.createElement('td');
+            tdActions.className = 'actions-cell no-pdf';
+            tdActions.innerHTML = `
+                <button class="btn-edit" onclick="startEdit(${indexNoBanco})">Editar</button>
+                <button class="btn-delete" onclick="deleteGibi(${indexNoBanco})">Excluir</button>
+            `;
+
+            tr.appendChild(tdCapa);
+            tr.appendChild(tdPersonagem);
+            tr.appendChild(tdNumero);
+            tr.appendChild(tdEditora);
+            tr.appendChild(tdCategoria);
+            tr.appendChild(tdSerie);
+            tr.appendChild(tdData);
+            tr.appendChild(tdEstado);
+            tr.appendChild(tdActions);
         }
+
+        tbody.appendChild(tr);
     });
 };
 
