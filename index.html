@@ -77,7 +77,17 @@
 
     <div id="pdfContent">
         <h2 id="currentSheetTitle" style="color: var(--primary); text-align: center; margin-bottom: 12px;"></h2>
-        
+        <div class="filter-bar no-pdf">
+    <!-- Novo Campo de Busca -->
+    <div class="search-box" style="margin-bottom: 10px;">
+        <input type="text" id="searchInput" placeholder="🔍 Buscar por título, editora, nº, ano..." oninput="filterTable()">
+    </div>
+
+    <label for="categoryFilter">📂 Categoria:</label>
+    <select id="categoryFilter" onchange="filterTable()">
+        <option value="TODAS">Todas as Categorias</option>
+    </select>
+    </div>
         <div class="filter-bar no-pdf">
             <label for="categoryFilter">🔍 Filtrar por Categoria:</label>
             <select id="categoryFilter" onchange="renderTable()">
