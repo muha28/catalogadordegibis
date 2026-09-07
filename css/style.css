@@ -170,17 +170,50 @@ button:hover {
     padding: 12px;
 }
 
+/* ---- BARRA DE FILTROS E BUSCA (ALINHAMENTO CORRIGIDO) ---- */
 .filter-bar {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-bottom: 12px;
-    background: #e9ecef;
-    padding: 10px 15px;
-    border-radius: 6px;
+    justify-content: space-between;
+    gap: 16px;
+    background-color: #e9ecef;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
 }
 
+.filter-bar .search-box {
+    flex: 1;
+    min-width: 250px;
+}
+
+.filter-bar .search-box input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #ffffff;
+}
+
+.filter-bar .category-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.filter-bar .category-box select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #ffffff;
+    cursor: pointer;
+}
+
+/* ---- TABELA ---- */
 .table-responsive {
     width: 100%;
     overflow-x: auto;
@@ -306,6 +339,9 @@ tr:hover { background-color: #e9ecef; }
     .btn-pdf { margin-left: 0; }
     .form-grid { grid-template-columns: 1fr; }
     .file-wrapper { grid-column: 1 / -1; }
+    
+    .filter-bar { flex-direction: column; align-items: stretch; }
+    .filter-bar .category-box { flex-direction: column; align-items: stretch; }
 }
 
 /* ---- CONFIGURAÇÃO DA IMAGEM DE FUNDO DO LOGIN ---- */
@@ -314,11 +350,10 @@ body:has(#loginScreen:not([style*="display: none"])) {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: scroll; /* Funciona melhor em telas touch */
+    background-attachment: scroll;
     min-height: 100vh;
 }
 
-/* Garante a exibição em telas menores */
 @media (max-width: 768px) {
     .auth-gate {
         background-color: var(--bg-panel);
