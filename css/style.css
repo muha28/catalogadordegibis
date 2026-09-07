@@ -1,61 +1,43 @@
 /* ==========================================================================
-   Meu Catalogador de Gibis - CSS Refinado
+   1. VARIÁVEIS GLORAIS E RESET
    ========================================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap');
-
 :root {
-  --primary: #2E4057;
-  --primary-hover: #1D2A3A;
-  --accent: #048A81;
-  --accent-hover: #036861;
-  --danger: #E63946;
-  --danger-hover: #C52233;
-  --warning: #F4A261;
-  --warning-hover: #E76F51;
-  --info: #457B9D;
-  --info-hover: #1D3557;
+  --primary: #00897B;
+  --primary-hover: #00695C;
+  --danger: #E53935;
+  --danger-hover: #C62828;
   --bg-color: #F8F9FA;
   --card-bg: #FFFFFF;
-  --text-main: #2B2D42;
-  --text-muted: #6C757D;
-  --border-color: #DEE2E6;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --text-main: #2D3748;
+  --text-muted: #718096;
+  --border-color: #E2E8F0;
   --radius: 8px;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-main);
-  line-height: 1.5;
-  padding: 20px 15px;
+  padding: 20px;
 }
 
 .container {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-/* Títulos */
-h1 {
-  font-family: 'Bangers', cursive;
-  font-size: 2.8rem;
-  letter-spacing: 1.5px;
-  color: var(--primary);
-  text-align: center;
-  margin: 10px 0 20px;
-  text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.1);
-}
-
-.auth-bar {
+/* ==========================================================================
+   2. CABEÇALHO E TÍTULO
+   ========================================================================== */
+.user-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -64,39 +46,170 @@ h1 {
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   margin-bottom: 20px;
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-/* Barra de Ferramentas / Controles (Flat layout) */
+.btn-logout {
+  background-color: #FB8C00;
+  color: white;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+
+.btn-logout:hover {
+  background-color: #EF6C00;
+}
+
+.app-title h1 {
+  text-align: center;
+  margin: 15px 0 25px 0;
+  color: #1A365D;
+  font-size: 2rem;
+  letter-spacing: 1px;
+}
+
+/* ==========================================================================
+   3. BARRA DE CONTROLES E SUBMENU (⚙️ OPÇÕES)
+   ========================================================================== */
 .controls {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 12px;
   background: var(--card-bg);
-  padding: 16px;
+  padding: 14px 18px;
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   margin-bottom: 20px;
 }
 
-.controls label {
-  font-size: 0.95rem;
+.main-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Submenu Dropdown */
+.settings-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-settings {
+  background-color: #4A5568;
+  color: white;
+  border: none;
+  padding: 9px 16px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-settings:hover {
+  background-color: #2D3748;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 115%;
+  background-color: #FFFFFF;
+  min-width: 200px;
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius);
+  z-index: 100;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.dropdown-content.show {
+  display: flex;
+  flex-direction: column;
+}
+
+.btn-menu-item {
+  background: transparent;
   color: var(--text-main);
-  margin-right: 2px;
+  border: none;
+  border-radius: 0;
+  padding: 12px 16px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  font-weight: 500;
+  font-size: 0.95rem;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
 }
 
-.controls select {
-  min-width: 150px;
-  font-weight: 600;
+.btn-menu-item:hover {
+  background-color: #F1F3F5;
+  color: var(--primary);
 }
 
-/* Formulário de Adição */
-#addGibiForm {
+/* ==========================================================================
+   4. BOTÕES E FORMULÁRIOS
+   ========================================================================== */
+button, select, input {
+  font-size: 0.95rem;
+}
+
+select, input[type="text"], input[type="number"] {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  outline: none;
+  background-color: #FAFAFA;
+}
+
+select:focus, input:focus {
+  border-color: var(--primary);
+  background-color: #FFF;
+}
+
+.btn-action {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-action:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-delete-sheet {
+  background-color: var(--danger);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-delete-sheet:hover {
+  background-color: var(--danger-hover);
+}
+
+/* Formulário de Adicionar Gibi */
+.gibi-form {
   background: var(--card-bg);
-  padding: 20px;
+  padding: 18px;
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   margin-bottom: 25px;
@@ -104,114 +217,68 @@ h1 {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
-.file-wrapper {
-  grid-column: 1 / -1;
+.form-file-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+  margin-bottom: 15px;
+  background: #F7FAFC;
   padding: 8px 12px;
-  background: #F1F3F5;
-  border-radius: var(--radius);
-  font-size: 0.88rem;
+  border-radius: 6px;
+  border: 1px dashed var(--border-color);
 }
 
-.form-submit-btn {
-  grid-column: 1 / -1;
-  margin-top: 5px;
-  padding: 12px;
-  font-size: 1rem;
-}
-
-/* Entradas e Seletores */
-input[type="text"],
-input[type="number"],
-select {
-  padding: 9px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  font-size: 0.9rem;
-  outline: none;
-  transition: all 0.2s ease;
-  background-color: #FFF;
-}
-
-input:focus, select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(4, 138, 129, 0.15);
-}
-
-/* Estilos de Botões */
-button, .btn {
-  background-color: var(--accent);
+.btn-add {
+  width: 100%;
+  background-color: var(--primary);
   color: white;
   border: none;
-  padding: 9px 16px;
-  border-radius: var(--radius);
+  padding: 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 1.05rem;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 0.88rem;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  box-shadow: var(--shadow-sm);
+  transition: background 0.2s;
 }
 
-button:hover, .btn:hover { background-color: var(--accent-hover); }
-
-.file-button-label {
-  margin: 0;
-  user-select: none;
+.btn-add:hover {
+  background-color: var(--primary-hover);
 }
 
-.btn-delete-sheet { background-color: var(--danger); }
-.btn-delete-sheet:hover { background-color: var(--danger-hover); }
+/* ==========================================================================
+   5. FILTROS E TABELA DE GIBIS
+   ========================================================================== */
+.collection-header h2 {
+  text-align: center;
+  color: #2B6CB0;
+  margin-bottom: 15px;
+  letter-spacing: 0.5px;
+}
 
-.btn-backup { background-color: var(--info); }
-.btn-backup:hover { background-color: var(--info-hover); }
-
-.btn-restore { background-color: var(--warning); }
-.btn-restore:hover { background-color: var(--warning-hover); }
-
-.btn-pdf { background-color: #6C5CE7; }
-.btn-pdf:hover { background-color: #5B4BC4; }
-
-.btn-edit { background-color: var(--info); padding: 5px 10px; font-size: 0.8rem; }
-.btn-delete { background-color: var(--danger); padding: 5px 10px; font-size: 0.8rem; }
-.btn-save { background-color: var(--accent); padding: 5px 10px; font-size: 0.8rem; }
-.btn-cancel { background-color: var(--text-muted); padding: 5px 10px; font-size: 0.8rem; }
-
-/* Barra de Filtros e Pesquisa */
 .filter-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
   justify-content: space-between;
   align-items: center;
+  gap: 15px;
   margin-bottom: 15px;
-  background: var(--card-bg);
-  padding: 12px 16px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
 }
 
 .search-box input {
-  min-width: 280px;
+  width: 280px;
 }
 
-/* Tabela de Gibis */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
   background: var(--card-bg);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 table {
@@ -220,137 +287,68 @@ table {
   text-align: left;
 }
 
-th, td {
+th {
+  background-color: #EDF2F7;
+  color: #4A5568;
   padding: 12px 14px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+td {
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
-  font-size: 0.9rem;
-}
-
-th {
-  background-color: #EAECEE;
-  font-weight: 700;
-  color: var(--primary);
-  text-transform: uppercase;
-  font-size: 0.8rem;
-  letter-spacing: 0.5px;
-}
-
-tr:hover {
-  background-color: #F8F9FA;
-}
-
-.capa-cell {
-  width: 60px;
-  text-align: center;
-}
-
-.capa-thumb {
-  width: 44px;
-  height: 62px;
-  object-fit: cover;
-  border-radius: 4px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.capa-thumb:hover {
-  transform: scale(1.15);
-}
-
-.capa-placeholder {
-  width: 44px;
-  height: 62px;
-  background: #E9ECEF;
-  color: var(--text-muted);
-  font-size: 0.65rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  text-align: center;
-}
-
-.actions-cell {
-  display: flex;
-  gap: 6px;
-}
-
-/* Modal para visualizar capas */
-.image-modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.85);
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.modal-content {
-  max-width: 90%;
-  max-height: 85vh;
-  border-radius: 6px;
-  box-shadow: 0 5px 25px rgba(0,0,0,0.5);
-}
-
-.modal-close {
-  position: absolute;
-  top: 20px;
-  right: 35px;
-  color: #FFF;
-  font-size: 40px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-/* Tela de Autenticação */
-.auth-gate {
-  max-width: 450px;
-  margin: 60px auto;
-  text-align: center;
-  background: var(--card-bg);
-  padding: 35px 25px;
-  border-radius: 12px;
-  box-shadow: var(--shadow-md);
-}
-
-.auth-gate p {
-  color: var(--text-muted);
-  margin-bottom: 25px;
   font-size: 0.95rem;
 }
 
-.btn-google-large {
-  background-color: #4285F4;
-  width: 100%;
-  padding: 12px;
-  font-size: 1rem;
+tr:hover {
+  background-color: #F7FAFC;
 }
 
-.btn-google-large:hover {
-  background-color: #357AE8;
+.img-thumb {
+  width: 45px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-/* Ocultação para PDF */
-@media print {
-  .no-pdf {
-    display: none !important;
-  }
-}
-
-/* Adaptação para Celulares */
+/* ==========================================================================
+   6. RESPONSIVIDADE (CELULARES E TABLETS)
+   ========================================================================== */
 @media (max-width: 768px) {
-  body { padding: 10px 5px; }
-  h1 { font-size: 2rem; }
-  .controls { flex-direction: column; align-items: stretch; }
-  .controls select, .controls button, .controls .btn { width: 100%; }
-  .filter-bar { flex-direction: column; align-items: stretch; }
-  .search-box input { width: 100%; min-width: 0; }
-  th, td { padding: 8px 6px; font-size: 0.82rem; }
-  .actions-cell { flex-direction: column; }
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .main-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .settings-dropdown {
+    width: 100%;
+  }
+
+  .btn-settings {
+    width: 100%;
+  }
+
+  .dropdown-content {
+    position: relative;
+    top: 5px;
+    width: 100%;
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box input {
+    width: 100%;
+  }
 }
