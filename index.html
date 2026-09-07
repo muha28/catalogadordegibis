@@ -5,24 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catalogador de Gibis da Bibi</title>
 
-    <!-- Manifesto PWA para remover a barra de endereços -->
+    <!-- Manifesto PWA -->
     <link rel="manifest" href="manifest.json">
 
     <!-- Configurações do Ícone no Mobile -->
     <link rel="icon" type="image/png" href="assets/bg-login.png">
     <link rel="apple-touch-icon" href="assets/bg-login.png">
 
-    <!-- Suporte Legado para WebApp Tela Cheia -->
+    <!-- Suporte Legado WebApp -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2E4057">
 
-    <!-- Fontes e Estilos Internos -->
+    <!-- Fontes e Estilos -->
     <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 
-    <!-- Bibliotecas Externas para Gerar PDF -->
+    <!-- Bibliotecas PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -31,7 +31,7 @@
 <div id="loginScreen" class="container auth-gate">
     <h1>📚 Catalogador de Gibis</h1>
     <p>Acesse com sua conta do Google para visualizar e gerenciar sua coleção na nuvem.</p>
-    <button class="btn-google-large" onclick="loginWithGoogle()">
+    <button type="button" class="btn-google-large" onclick="loginWithGoogle()">
         🔑 Entrar com o Google
     </button>
 </div>
@@ -39,7 +39,7 @@
 <div id="mainApp" class="container" style="display: none;">
     <div class="auth-bar">
         <span id="userStatus">Carregando...</span>
-        <button class="btn-restore" onclick="logout()">Sair</button>
+        <button type="button" class="btn-restore" onclick="logout()">Sair</button>
     </div>
 
     <h1>📚 Meu Catalogador de Gibis</h1>
@@ -47,14 +47,14 @@
     <div class="controls">
         <label for="sheetSelect"><strong>Personagem:</strong></label>
         <select id="sheetSelect" onchange="changeSheet()"></select>
-        <button onclick="createNewSheet()">+ Nova Lista</button>
-        <button class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
+        <button type="button" onclick="createNewSheet()">+ Nova Lista</button>
+        <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
         
-        <button class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
-        <button class="btn-restore" onclick="document.getElementById('importInput').click()">📂 Restaurar Backup</button>
+        <button type="button" class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
+        <button type="button" class="btn-restore" onclick="document.getElementById('importInput').click()">📂 Restaurar Backup</button>
         <input type="file" id="importInput" style="display:none" onchange="importarBackup(event)" accept=".json">
 
-        <button class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
+        <button type="button" class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
     </div>
 
     <form id="addGibiForm" onsubmit="addGibi(event)">
@@ -76,49 +76,47 @@
     </form>
 
     <div id="pdfContent">
-    <h2 id="currentSheetTitle" style="color: var(--primary); text-align: center; margin-bottom: 12px;"></h2>
-    
-    <!-- Barra de Filtros e Busca Corrigida -->
-    <div class="filter-bar no-pdf">
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº, ano, estado..." oninput="renderTable()">
+        <h2 id="currentSheetTitle" style="color: var(--primary); text-align: center; margin-bottom: 12px;"></h2>
+        
+        <div class="filter-bar no-pdf">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº, ano, estado..." oninput="renderTable()">
+            </div>
+
+            <div class="category-box">
+                <label for="categoryFilter">📂 Filtrar por Categoria:</label>
+                <select id="categoryFilter" onchange="renderTable()">
+                    <option value="TODAS">Todas as Categorias</option>
+                </select>
+            </div>
         </div>
 
-        <div class="category-box">
-            <label for="categoryFilter">📂 Filtrar por Categoria:</label>
-            <select id="categoryFilter" onchange="renderTable()">
-                <option value="TODAS">Todas as Categorias</option>
-            </select>
+        <div class="table-responsive">
+            <table id="gibiTable">
+                <thead>
+                    <tr>
+                        <th class="capa-cell">Capa</th>
+                        <th>Personagem</th>
+                        <th>Nº</th>
+                        <th>Editora</th>
+                        <th>Categoria</th>
+                        <th>Série/Fase</th>
+                        <th>Data</th>
+                        <th>Estado</th>
+                        <th class="actions-cell no-pdf">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
         </div>
-    </div>
-
-    <div class="table-responsive">
-        <table id="gibiTable">
-            <thead>
-                <tr>
-                    <th class="capa-cell">Capa</th>
-                    <th>Personagem</th>
-                    <th>Nº</th>
-                    <th>Editora</th>
-                    <th>Categoria</th>
-                    <th>Série/Fase</th>
-                    <th>Data</th>
-                    <th>Estado</th>
-                    <th class="actions-cell no-pdf">Ações</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
     </div>
 </div>
 
-<!-- Container Modal para Zoom da Capa -->
 <div id="imageModal" class="image-modal no-pdf" onclick="closeImageModal()">
     <span class="modal-close" onclick="closeImageModal()">&times;</span>
     <img class="modal-content" id="imgModalTarget" alt="Capa Ampliada">
 </div>
 
-<!-- Registro do Service Worker para PWA -->
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -129,8 +127,6 @@
   }
 </script>
 
-<!-- Script Principal -->
-    <!-- Sempre Atualizar a versão a cada alteração de funcionalidades -->
-<script type="module" src="js/app.js?v=2.4"></script>
+<script type="module" src="js/app.js?v=2.5"></script>
 </body>
 </html>
