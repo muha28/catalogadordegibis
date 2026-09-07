@@ -307,3 +307,12 @@ tr:hover { background-color: #e9ecef; }
     .form-grid { grid-template-columns: 1fr; }
     .file-wrapper { grid-column: 1 / -1; }
 }
+
+/* --- CONFIGURAÇÃO DA IMAGEM DE FUNDO DO LOGIN --- */
+body:has(#loginScreen:not([style*="display: none"])) {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url('../assets/30-gibi (1).png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
