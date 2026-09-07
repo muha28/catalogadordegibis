@@ -170,7 +170,6 @@ window.deleteCurrentSheet = async function() {
 window.changeSheet = function() { 
     currentSheet = document.getElementById('sheetSelect').value; 
     
-    // Reseta a busca ao trocar de lista
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.value = '';
 
@@ -264,12 +263,12 @@ window.closeImageModal = function() {
     document.getElementById('imageModal').style.display = 'none';
 };
 
-/* Renderização, Busca por múltiplos campos (incluindo Personagem) e Coluna Personagem Automática */
+/* Renderização e Pesquisa Avançada Multi-termo */
 window.renderTable = function() {
     const tbody = document.getElementById('tableBody'); 
     const selectedFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
     const searchInput = document.getElementById('searchInput');
-    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
+    const rawSearch = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
     tbody.innerHTML = '';
 
@@ -277,29 +276,30 @@ window.renderTable = function() {
 
     let itemsToRender = [...database[currentSheet]];
 
-    // 1. Aplica o filtro de Categoria
+    // 1. Aplica o filtro de Categoria via Dropdown
     if (selectedFilter !== "TODAS") {
         itemsToRender = itemsToRender.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
     }
 
-    // 2. Busca Rápida abrangente nos campos: Personagem, Nº, Editora, Categoria, Série/Fase, Data e Estado
-    if (searchTerm !== "") {
-        itemsToRender = itemsToRender.filter(item => {
-            const personagem = (currentSheet || "").toLowerCase();
-            const numeroStr = item.numero !== undefined && item.numero !== null ? item.numero.toString().toLowerCase() : "";
-            const editora = (item.editora || "").toLowerCase();
-            const categoria = (item.categoria || "").toLowerCase();
-            const serie = (item.serie || "").toLowerCase();
-            const data = (item.data || "").toLowerCase();
-            const estado = (item.estado || "").toLowerCase();
+    // 2. Pesquisa Avançada Multi-termo
+    if (rawSearch !== "") {
+        // Divide o texto buscado por espaços para permitir buscas complexas (ex: "Globo Chico 100")
+        const terms = rawSearch.split(/\s+/);
 
-            return personagem.includes(searchTerm) ||
-                   numeroStr.includes(searchTerm) ||
-                   editora.includes(searchTerm) ||
-                   categoria.includes(searchTerm) ||
-                   serie.includes(searchTerm) ||
-                   data.includes(searchTerm) ||
-                   estado.includes(searchTerm);
+        itemsToRender = itemsToRender.filter(item => {
+            // Concatena todos os campos do item para formar uma única string de busca
+            const itemContent = [
+                currentSheet,
+                item.numero !== undefined && item.numero !== null ? item.numero.toString() : "",
+                item.editora || "",
+                item.categoria || "",
+                item.serie || "",
+                item.data || "",
+                item.estado || ""
+            ].join(" ").toLowerCase();
+
+            // Garante que TODOS os termos digitados na busca existam nas propriedades do item
+            return terms.every(term => itemContent.includes(term));
         });
     }
 
