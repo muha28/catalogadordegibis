@@ -264,7 +264,7 @@ window.closeImageModal = function() {
     document.getElementById('imageModal').style.display = 'none';
 };
 
-/* Renderização e Filtragem por Categoria e Busca em Tempo Real */
+/* Renderização, Busca por múltiplos campos (incluindo Personagem) e Coluna Personagem Automática */
 window.renderTable = function() {
     const tbody = document.getElementById('tableBody'); 
     const selectedFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
@@ -282,17 +282,19 @@ window.renderTable = function() {
         itemsToRender = itemsToRender.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
     }
 
-    // 2. Aplica o filtro da Busca Rápida (compara em todos os campos do gibi)
+    // 2. Busca Rápida abrangente nos campos: Personagem, Nº, Editora, Categoria, Série/Fase, Data e Estado
     if (searchTerm !== "") {
         itemsToRender = itemsToRender.filter(item => {
-            const numeroStr = item.numero ? item.numero.toString() : "";
+            const personagem = (currentSheet || "").toLowerCase();
+            const numeroStr = item.numero !== undefined && item.numero !== null ? item.numero.toString().toLowerCase() : "";
             const editora = (item.editora || "").toLowerCase();
             const categoria = (item.categoria || "").toLowerCase();
             const serie = (item.serie || "").toLowerCase();
             const data = (item.data || "").toLowerCase();
             const estado = (item.estado || "").toLowerCase();
 
-            return numeroStr.includes(searchTerm) ||
+            return personagem.includes(searchTerm) ||
+                   numeroStr.includes(searchTerm) ||
                    editora.includes(searchTerm) ||
                    categoria.includes(searchTerm) ||
                    serie.includes(searchTerm) ||
@@ -312,6 +314,7 @@ window.renderTable = function() {
         if (editingIndex === indexNoBanco) {
             tbody.innerHTML += `<tr>
                 <td class="capa-cell"><input type="file" id="editCapa_${indexNoBanco}" accept="image/*" style="font-size:10px; width:70px;"></td>
+                <td><strong>${currentSheet}</strong></td>
                 <td><input type="number" id="editNumero_${indexNoBanco}" value="${item.numero}"></td>
                 <td><input type="text" id="editEditora_${indexNoBanco}" value="${item.editora}"></td>
                 <td><input type="text" id="editCategoria_${indexNoBanco}" value="${item.categoria}"></td>
@@ -330,6 +333,7 @@ window.renderTable = function() {
 
             tbody.innerHTML += `<tr>
                 <td class="capa-cell">${capaHTML}</td>
+                <td><strong>${currentSheet}</strong></td>
                 <td class="numero-cell">Nº ${item.numero}</td>
                 <td>${item.editora}</td>
                 <td>${item.categoria}</td>
