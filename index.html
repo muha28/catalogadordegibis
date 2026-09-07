@@ -19,7 +19,7 @@
     <meta name="theme-color" content="#2E4057">
 
     <!-- Fontes e Estilos -->
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 
     <!-- Bibliotecas PDF -->
@@ -44,20 +44,26 @@
 
     <h1>📚 Meu Catalogador de Gibis</h1>
 
-    <div class="controls">
-        <label for="sheetSelect"><strong>Personagem:</strong></label>
-        <select id="sheetSelect" onchange="changeSheet()"></select>
-        <button type="button" onclick="createNewSheet()">+ Nova Lista</button>
-        <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
-        
-        <button type="button" class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
-        <button type="button" class="btn-restore" onclick="document.getElementById('importInput').click()">📂 Restaurar Backup</button>
-        <input type="file" id="importInput" style="display:none" onchange="importarBackup(event)" accept=".json">
+    <!-- Barra de Ferramentas e Ações Organizada -->
+    <div class="controls no-pdf">
+        <div class="controls-group">
+            <label for="sheetSelect"><strong>Personagem:</strong></label>
+            <select id="sheetSelect" onchange="changeSheet()"></select>
+            <button type="button" onclick="createNewSheet()">➕ Nova Lista</button>
+            <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
+        </div>
 
-        <button type="button" class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
+        <div class="controls-group">
+            <button type="button" class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
+            <label class="btn btn-restore file-button-label">
+                📂 Restaurar Backup
+                <input type="file" id="importInput" onchange="importarBackup(event)" accept=".json" hidden>
+            </label>
+            <button type="button" class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
+        </div>
     </div>
 
-    <form id="addGibiForm" onsubmit="addGibi(event)">
+    <form id="addGibiForm" class="no-pdf" onsubmit="addGibi(event)">
         <div class="form-grid">
             <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
             <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)" required>
@@ -127,6 +133,6 @@
   }
 </script>
 
-<script type="module" src="js/app.js?v=2.9"></script>
+<script type="module" src="js/app.js?v=3.0"></script>
 </body>
 </html>
