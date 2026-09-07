@@ -8,17 +8,25 @@
     <!-- CSS Principal -->
     <link rel="stylesheet" href="css/style.css">
 
-    <!-- Bibliotecas Externas (PDF) -->
+    <!-- Biblioteca Externas (html2pdf) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
-    <div class="container">
+    <!-- Tela de Login (Exibida caso o usuário não esteja autenticado) -->
+    <div id="loginScreen" style="display: none; text-align: center; margin-top: 50px;">
+        <h1>📚 MEU CATALOGADOR DE GIBIS</h1>
+        <p>Faça login com sua conta do Google para acessar suas coleções:</p>
+        <button type="button" class="btn-action" onclick="window.loginWithGoogle()">Entrar com Google</button>
+    </div>
+
+    <!-- Aplicação Principal -->
+    <div id="mainApp" class="container" style="display: none;">
 
         <!-- Cabeçalho / Barra do Usuário -->
         <header class="user-header no-pdf">
-            <span id="userGreeting">Usuário: Carregando...</span>
-            <button type="button" class="btn-logout" onclick="window.logout ? window.logout() : null">Sair</button>
+            <span id="userStatus">Usuário: Carregando...</span>
+            <button type="button" class="btn-logout" onclick="window.logout()">Sair</button>
         </header>
 
         <!-- Título do Aplicativo -->
@@ -30,91 +38,100 @@
         <div class="controls no-pdf">
             <div class="main-controls">
                 <label for="sheetSelect"><strong>Personagem:</strong></label>
-                <select id="sheetSelect" onchange="window.changeSheet ? window.changeSheet() : null"></select>
+                <select id="sheetSelect" onchange="window.changeSheet()"></select>
 
-                <button type="button" class="btn-action" onclick="window.createNewSheet ? window.createNewSheet() : null">+ Nova Lista</button>
-                <button type="button" class="btn-delete-sheet" onclick="window.deleteCurrentSheet ? window.deleteCurrentSheet() : null">Excluir Lista</button>
+                <button type="button" class="btn-action" onclick="window.createNewSheet()">+ Nova Lista</button>
+                <button type="button" class="btn-delete-sheet" onclick="window.deleteCurrentSheet()">Excluir Lista</button>
             </div>
 
-            <!-- Submenu de Opções (Backup e Exportar PDF) -->
+            <!-- Submenu de Opções -->
             <div class="settings-dropdown">
                 <button type="button" class="btn-settings" onclick="toggleSettingsMenu(event)">⚙️ Opções ▾</button>
 
                 <div id="settingsMenu" class="dropdown-content">
-                    <button type="button" class="btn-menu-item" onclick="if(window.exportarBackup) window.exportarBackup(); closeSettingsMenu();">💾 Baixar Backup</button>
+                    <button type="button" class="btn-menu-item" onclick="window.exportarBackup(); closeSettingsMenu();">💾 Baixar Backup</button>
 
                     <label class="btn-menu-item">
                         📂 Restaurar Backup
-                        <input type="file" id="importInput" onchange="if(window.importarBackup) window.importarBackup(event); closeSettingsMenu();" accept=".json" hidden>
+                        <input type="file" id="importInput" onchange="window.importarBackup(event); closeSettingsMenu();" accept=".json" hidden>
                     </label>
 
-                    <button type="button" class="btn-menu-item" onclick="if(window.exportToPDF) window.exportToPDF(); closeSettingsMenu();">📄 Exportar PDF</button>
+                    <button type="button" class="btn-menu-item" onclick="window.exportToPDF(); closeSettingsMenu();">📄 Exportar PDF</button>
                 </div>
             </div>
         </div>
 
         <!-- Formulário para Adicionar Novo Gibi -->
-        <form id="gibiForm" class="gibi-form no-pdf" onsubmit="if(window.addGibi) window.addGibi(event);">
+        <form id="addGibiForm" class="gibi-form no-pdf" onsubmit="window.addGibi(event)">
             <div class="form-grid">
                 <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
                 <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)">
-                <input type="text" id="serieFase" placeholder="Série/Fase (ex: 1ª Série)">
+                <input type="text" id="serie" placeholder="Série/Fase (ex: 1ª Série)">
                 <input type="number" id="numero" placeholder="Número (ex: 1)" required>
-                <input type="text" id="dataPublicacao" placeholder="Mês/Ano (ex: Jan/1980)">
+                <input type="text" id="data" placeholder="Mês/Ano (ex: Jan/1980)">
                 <input type="text" id="estado" placeholder="Estado (ex: Bom)">
             </div>
 
             <div class="form-file-row">
-                <label for="capa" class="file-label">Imagem da Capa (Opcional):</label>
-                <input type="file" id="capa" accept="image/*">
+                <label for="capaInput" class="file-label">Imagem da Capa (Opcional):</label>
+                <input type="file" id="capaInput" accept="image/*">
             </div>
 
             <button type="submit" class="btn-add">+ Adicionar À Lista</button>
         </form>
 
-        <!-- Título da Coleção Atual -->
-        <div class="collection-header">
-            <h2 id="currentCollectionTitle">COLEÇÃO: SELECIONE UM PERSONAGEM</h2>
-        </div>
-
-        <!-- Filtros e Busca -->
-        <div class="filter-bar no-pdf">
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº..." oninput="if(window.filterTable) window.filterTable();">
+        <!-- Conteúdo Impresso/Exportado no PDF -->
+        <div id="pdfContent">
+            <!-- Título da Coleção Atual -->
+            <div class="collection-header">
+                <h2 id="currentSheetTitle">COLEÇÃO: SELECIONE UM PERSONAGEM</h2>
             </div>
-            <div class="category-filter">
-                <label for="categoryFilter">📂 Filtrar por Categoria:</label>
-                <select id="categoryFilter" onchange="if(window.filterTable) window.filterTable();">
-                    <option value="">Todas as Categorias</option>
-                </select>
-            </div>
-        </div>
 
-        <!-- Tabela de Gibis Catalogados -->
-        <div class="table-responsive">
-            <table id="gibiTable">
-                <thead>
-                    <tr>
-                        <th>CAPA</th>
-                        <th>PERSONAGEM</th>
-                        <th>Nº</th>
-                        <th>EDITORA</th>
-                        <th>CATEGORIA</th>
-                        <th>SÉRIE/FASE</th>
-                        <th>DATA</th>
-                        <th>ESTADO</th>
-                        <th class="no-pdf actions-cell">AÇÕES</th>
-                    </tr>
-                </thead>
-                <tbody id="gibiTableBody">
-                    <!-- Linhas geradas dinamicamente pelo JavaScript -->
-                </tbody>
-            </table>
+            <!-- Filtros e Busca -->
+            <div class="filter-bar no-pdf">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº..." oninput="window.renderTable()">
+                </div>
+                <div class="category-filter">
+                    <label for="categoryFilter">📂 Filtrar por Categoria:</label>
+                    <select id="categoryFilter" onchange="window.renderTable()">
+                        <option value="TODAS">Todas as Categorias</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabela de Gibis Catalogados -->
+            <div class="table-responsive">
+                <table id="gibiTable">
+                    <thead>
+                        <tr>
+                            <th>CAPA</th>
+                            <th>PERSONAGEM</th>
+                            <th>Nº</th>
+                            <th>EDITORA</th>
+                            <th>CATEGORIA</th>
+                            <th>SÉRIE/FASE</th>
+                            <th>DATA</th>
+                            <th>ESTADO</th>
+                            <th class="no-pdf actions-cell">AÇÕES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Linhas geradas dinamicamente pelo JavaScript -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
 
-    <!-- Controle do Submenu Dropdown -->
+    <!-- Modal para Ampliar Capas -->
+    <div id="imageModal" class="modal" onclick="window.closeImageModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:1000;">
+        <span style="position:absolute; top:20px; right:30px; color:#fff; font-size:30px; cursor:pointer;">&times;</span>
+        <img id="imgModalTarget" style="max-width:90%; max-height:90%; border-radius:8px; box-shadow:0 0 15px rgba(255,255,255,0.3);">
+    </div>
+
+    <!-- Controle do Menu Dropdown -->
     <script>
         function toggleSettingsMenu(event) {
             if (event) event.stopPropagation();
@@ -135,7 +152,7 @@
         });
     </script>
 
-    <!-- Script Principal como Módulo -->
+    <!-- Script Principal da Aplicação -->
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
