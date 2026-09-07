@@ -44,23 +44,21 @@
 
     <h1>📚 Meu Catalogador de Gibis</h1>
 
-    <!-- Barra de Ferramentas e Ações Organizada -->
+    <!-- Barra de Ferramentas Única Alinhada -->
     <div class="controls no-pdf">
-        <div class="controls-group">
-            <label for="sheetSelect"><strong>Personagem:</strong></label>
-            <select id="sheetSelect" onchange="changeSheet()"></select>
-            <button type="button" onclick="createNewSheet()">➕ Nova Lista</button>
-            <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
-        </div>
+        <label for="sheetSelect"><strong>Personagem:</strong></label>
+        <select id="sheetSelect" onchange="changeSheet()"></select>
+        
+        <button type="button" onclick="createNewSheet()">➕ Nova Lista</button>
+        <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
+        <button type="button" class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
+        
+        <label class="btn btn-restore file-button-label">
+            📂 Restaurar Backup
+            <input type="file" id="importInput" onchange="importarBackup(event)" accept=".json" hidden>
+        </label>
 
-        <div class="controls-group">
-            <button type="button" class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
-            <label class="btn btn-restore file-button-label">
-                📂 Restaurar Backup
-                <input type="file" id="importInput" onchange="importarBackup(event)" accept=".json" hidden>
-            </label>
-            <button type="button" class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
-        </div>
+        <button type="button" class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
     </div>
 
     <form id="addGibiForm" class="no-pdf" onsubmit="addGibi(event)">
@@ -133,6 +131,6 @@
   }
 </script>
 
-<script type="module" src="js/app.js?v=3.0"></script>
+<script type="module" src="js/app.js?v=3.1"></script>
 </body>
 </html>
