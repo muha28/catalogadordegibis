@@ -11,7 +11,6 @@ import {
     browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
@@ -25,7 +24,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 // Garante persistência local
 setPersistence(auth, browserLocalPersistence).catch(console.error);
@@ -36,9 +34,10 @@ let currentSheet = "";
 let editingIndex = null;
 let currentUser = null;
 
-// Função auxiliar de compressão
-function compressImage(file, maxWidth = 600) {
-    return new Promise((resolve) => {
+// Função auxiliar de conversão e compressão para Base64 (Sem uso de Storage)
+function imageToBase64(file, maxWidth = 400) {
+    return new Promise((resolve, reject) => {
+        if (!file) return resolve("");
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (event) => {
@@ -58,17 +57,17 @@ function compressImage(file, maxWidth = 600) {
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                canvas.toBlob((blob) => {
-                    resolve(blob || file);
-                }, 'image/jpeg', 0.85);
+
+                // Converte em imagem JPEG leve e compacta
+                resolve(canvas.toDataURL('image/jpeg', 0.75));
             };
-            img.onerror = () => resolve(file);
+            img.onerror = (err) => reject(err);
         };
-        reader.onerror = () => resolve(file);
+        reader.onerror = (err) => reject(err);
     });
 }
 
-// 1. Processa redirecionamentos do login (sem travar a observação de sessão)
+// 1. Processa redirecionamentos do login
 getRedirectResult(auth)
     .then((result) => {
         if (result && result.user) {
@@ -254,20 +253,6 @@ window.changeSheet = function() {
     init(); 
 };
 
-async function uploadCapa(file) {
-    if (!file || !currentUser) return "";
-    try {
-        const compressedFile = await compressImage(file);
-        const storageRef = ref(storage, `capas/${currentUser.uid}/${Date.now()}_${file.name.replace(/\s+/g, '_')}`);
-        const snapshot = await uploadBytes(storageRef, compressedFile);
-        return await getDownloadURL(snapshot.ref);
-    } catch (err) {
-        console.error("Erro ao enviar imagem:", err);
-        alert("Erro ao salvar a capa da imagem.");
-        return "";
-    }
-}
-
 window.addGibi = async function(event) {
     event.preventDefault();
     const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -278,7 +263,7 @@ window.addGibi = async function(event) {
         let capaURL = "";
 
         if (fileInput && fileInput.files && fileInput.files[0]) {
-            capaURL = await uploadCapa(fileInput.files[0]);
+            capaURL = await imageToBase64(fileInput.files[0]);
         }
 
         if (!database[currentSheet]) {
@@ -299,6 +284,9 @@ window.addGibi = async function(event) {
         updateCategoryFilterOptions();
         renderTable(); 
         document.getElementById('addGibiForm').reset();
+    } catch (err) {
+        console.error("Erro ao adicionar gibi:", err);
+        alert("Erro ao adicionar o gibi. Verifique o console.");
     } finally {
         if (submitBtn) submitBtn.disabled = false;
     }
@@ -322,7 +310,7 @@ window.saveEdit = async function(index) {
     let capaURL = database[currentSheet][index].capa;
 
     if (fileInput && fileInput.files && fileInput.files[0]) {
-        capaURL = await uploadCapa(fileInput.files[0]);
+        capaURL = await imageToBase64(fileInput.files[0]);
     }
 
     database[currentSheet][index] = {
@@ -416,6 +404,7 @@ window.renderTable = function() {
             `;
 
             tr.querySelector(`#editNumero_${indexNoBanco}`).value = item.numero;
+            tr.querySelector(`#editEditora_${indexNoBanco}`).value = item.editora || '';
             tr.querySelector(`#editEditora_${indexNoBanco}`).value = item.editora || '';
             tr.querySelector(`#editCategoria_${indexNoBanco}`).value = item.categoria || '';
             tr.querySelector(`#editSerie_${indexNoBanco}`).value = item.serie || '';
