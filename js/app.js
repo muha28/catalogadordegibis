@@ -1,6 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { 
+    getAuth, 
+    signInWithPopup, 
+    signInWithRedirect, 
+    getRedirectResult, 
+    GoogleAuthProvider, 
+    signOut, 
+    onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
@@ -14,12 +23,18 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 let fundosPersonagens = { "default": "" };
 let database = {};
 let currentSheet = "";
 let editingIndex = null;
 let currentUser = null;
+
+// Trata o retorno do login por redirecionamento no mobile
+getRedirectResult(auth).catch((error) => {
+    console.error("Erro no retorno do login via redirect:", error);
+});
 
 onAuthStateChanged(auth, async (user) => {
     const loginScreen = document.getElementById('loginScreen');
@@ -28,25 +43,38 @@ onAuthStateChanged(auth, async (user) => {
 
     if (user) {
         currentUser = user;
-        statusEl.innerText = `Usuário: ${user.displayName || user.email}`;
-        loginScreen.style.display = 'none';
-        mainApp.style.display = 'block';
+        if (statusEl) statusEl.innerText = `Usuário: ${user.displayName || user.email}`;
+        if (loginScreen) loginScreen.style.display = 'none';
+        if (mainApp) mainApp.style.display = 'block';
         
         await loadUserData();
         init();
     } else {
         currentUser = null;
         database = {};
-        loginScreen.style.display = 'block';
-        mainApp.style.display = 'none';
+        if (loginScreen) loginScreen.style.display = 'block';
+        if (mainApp) mainApp.style.display = 'none';
     }
 });
 
+// Login com suporte a Mobile (Redirect) e Desktop (Popup)
 window.loginWithGoogle = function() {
     const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider).catch(error => {
-        alert("Erro ao realizar login: " + error.message);
-    });
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+        signInWithRedirect(auth, provider).catch(error => {
+            alert("Erro ao realizar login: " + error.message);
+        });
+    } else {
+        signInWithPopup(auth, provider).catch(error => {
+            if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+                signInWithRedirect(auth, provider);
+            } else {
+                alert("Erro ao realizar login: " + error.message);
+            }
+        });
+    }
 };
 
 window.logout = function() {
@@ -103,6 +131,7 @@ function init() {
 
 function updateSheetDropdown() {
     const select = document.getElementById('sheetSelect');
+    if (!select) return;
     select.innerHTML = '';
     
     const sortedSheets = Object.keys(database).sort((a, b) => 
@@ -117,7 +146,8 @@ function updateSheetDropdown() {
         select.appendChild(option);
     });
 
-    document.getElementById('currentSheetTitle').innerText = "COLEÇÃO: " + currentSheet.toUpperCase();
+    const titleEl = document.getElementById('currentSheetTitle');
+    if (titleEl) titleEl.innerText = "COLEÇÃO: " + currentSheet.toUpperCase();
 }
 
 function updateCategoryFilterOptions() {
@@ -176,22 +206,27 @@ window.changeSheet = function() {
     init(); 
 };
 
-function convertFileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-        reader.readAsDataURL(file);
-    });
+// Faz o upload da capa para o Firebase Storage
+async function uploadCapa(file) {
+    if (!file || !currentUser) return "";
+    try {
+        const storageRef = ref(storage, `capas/${currentUser.uid}/${Date.now()}_${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        return await getDownloadURL(snapshot.ref);
+    } catch (err) {
+        console.error("Erro ao enviar imagem:", err);
+        alert("Erro ao salvar a capa da imagem.");
+        return "";
+    }
 }
 
 window.addGibi = async function(event) {
     event.preventDefault();
     const fileInput = document.getElementById('capaInput');
-    let capaBase64 = "";
+    let capaURL = "";
 
-    if (fileInput.files && fileInput.files[0]) {
-        capaBase64 = await convertFileToBase64(fileInput.files[0]);
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        capaURL = await uploadCapa(fileInput.files[0]);
     }
 
     if (!database[currentSheet]) {
@@ -199,7 +234,7 @@ window.addGibi = async function(event) {
     }
 
     database[currentSheet].push({
-        capa: capaBase64,
+        capa: capaURL,
         editora: document.getElementById('editora').value,
         categoria: document.getElementById('categoria').value,
         serie: document.getElementById('serie').value,
@@ -229,14 +264,14 @@ window.cancelEdit = function() { editingIndex = null; renderTable(); };
 
 window.saveEdit = async function(index) {
     const fileInput = document.getElementById(`editCapa_${index}`);
-    let capaBase64 = database[currentSheet][index].capa;
+    let capaURL = database[currentSheet][index].capa;
 
     if (fileInput && fileInput.files && fileInput.files[0]) {
-        capaBase64 = await convertFileToBase64(fileInput.files[0]);
+        capaURL = await uploadCapa(fileInput.files[0]);
     }
 
     database[currentSheet][index] = {
-        capa: capaBase64,
+        capa: capaURL,
         numero: parseInt(document.getElementById(`editNumero_${index}`).value) || 0,
         editora: document.getElementById(`editEditora_${index}`).value,
         categoria: document.getElementById(`editCategoria_${index}`).value,
@@ -251,21 +286,26 @@ window.saveEdit = async function(index) {
     renderTable();
 };
 
-/* Funções do Modal de Zoom da Capa */
+/* Modal de Zoom da Capa */
 window.openImageModal = function(src) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('imgModalTarget');
-    modal.style.display = 'flex';
-    modalImg.src = src;
+    if (modal && modalImg) {
+        modal.style.display = 'flex';
+        modalImg.src = src;
+    }
 };
 
 window.closeImageModal = function() {
-    document.getElementById('imageModal').style.display = 'none';
+    const modal = document.getElementById('imageModal');
+    if (modal) modal.style.display = 'none';
 };
 
 /* Renderização e Pesquisa Avançada Multi-termo */
 window.renderTable = function() {
     const tbody = document.getElementById('tableBody'); 
+    if (!tbody) return;
+
     const selectedFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
     const searchInput = document.getElementById('searchInput');
     const rawSearch = searchInput ? searchInput.value.toLowerCase().trim() : "";
@@ -276,18 +316,16 @@ window.renderTable = function() {
 
     let itemsToRender = [...database[currentSheet]];
 
-    // 1. Aplica o filtro de Categoria via Dropdown
+    // 1. Filtro de Categoria
     if (selectedFilter !== "TODAS") {
         itemsToRender = itemsToRender.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
     }
 
     // 2. Pesquisa Avançada Multi-termo
     if (rawSearch !== "") {
-        // Divide o texto buscado por espaços para permitir buscas complexas (ex: "Globo Chico 100")
         const terms = rawSearch.split(/\s+/);
 
         itemsToRender = itemsToRender.filter(item => {
-            // Concatena todos os campos do item para formar uma única string de busca
             const itemContent = [
                 currentSheet,
                 item.numero !== undefined && item.numero !== null ? item.numero.toString() : "",
@@ -298,12 +336,10 @@ window.renderTable = function() {
                 item.estado || ""
             ].join(" ").toLowerCase();
 
-            // Garante que TODOS os termos digitados na busca existam nas propriedades do item
             return terms.every(term => itemContent.includes(term));
         });
     }
 
-    // Ordenação por número quando não estiver em edição
     if (editingIndex === null) {
         itemsToRender.sort((a, b) => a.numero - b.numero);
     }
