@@ -35,6 +35,7 @@ let database = {};
 let currentSheet = "";
 let editingIndex = null;
 let currentUser = null;
+let isHandlingRedirect = false;
 
 // Função auxiliar para redimensionar imagens e economizar espaço
 function compressImage(file, maxWidth = 600) {
@@ -68,60 +69,72 @@ function compressImage(file, maxWidth = 600) {
     });
 }
 
-// Processa o retorno do login por redirecionamento
-async function handleAuthRedirect() {
+// 1. Processa o retorno do login por redirecionamento caso ocorra
+async function checkRedirectResult() {
+    isHandlingRedirect = true;
     try {
         const result = await getRedirectResult(auth);
         if (result && result.user) {
-            console.log("Login por redirect realizado com sucesso:", result.user);
+            console.log("Login via redirect concluído com sucesso:", result.user);
         }
     } catch (error) {
         console.error("Erro no retorno do login via redirect:", error);
-        alert("Erro na autenticação: " + error.message);
+        if (error.code !== 'auth/popup-closed-by-user') {
+            alert("Erro na autenticação: " + error.message);
+        }
+    } finally {
+        isHandlingRedirect = false;
     }
 }
 
-// Inicializa a verificação do Auth
-handleAuthRedirect().then(() => {
-    onAuthStateChanged(auth, async (user) => {
-        const loginScreen = document.getElementById('loginScreen');
-        const mainApp = document.getElementById('mainApp');
-        const statusEl = document.getElementById('userStatus');
+// Inicia checagem de redirect imediatamente
+checkRedirectResult();
 
-        if (user) {
-            currentUser = user;
-            if (statusEl) statusEl.innerText = `Usuário: ${user.displayName || user.email}`;
-            if (loginScreen) loginScreen.style.display = 'none';
-            if (mainApp) mainApp.style.display = 'block';
-            
-            await loadUserData();
-            init();
-        } else {
-            currentUser = null;
-            database = {};
-            if (loginScreen) loginScreen.style.display = 'block';
-            if (mainApp) mainApp.style.display = 'none';
-        }
-    });
+// 2. Monitor do estado do Usuário (Sessão)
+onAuthStateChanged(auth, async (user) => {
+    // Evita recarregar a tela enquanto o redirect do Google ainda está processando
+    if (isHandlingRedirect) return;
+
+    const loginScreen = document.getElementById('loginScreen');
+    const mainApp = document.getElementById('mainApp');
+    const statusEl = document.getElementById('userStatus');
+
+    if (user) {
+        currentUser = user;
+        if (statusEl) statusEl.innerText = `Usuário: ${user.displayName || user.email}`;
+        if (loginScreen) loginScreen.style.display = 'none';
+        if (mainApp) mainApp.style.display = 'block';
+        
+        await loadUserData();
+        init();
+    } else {
+        currentUser = null;
+        database = {};
+        if (loginScreen) loginScreen.style.display = 'block';
+        if (mainApp) mainApp.style.display = 'none';
+    }
 });
 
-// Login adaptativo
-window.loginWithGoogle = function() {
+// 3. Login com tratamento resiliente para Mobile
+window.loginWithGoogle = async function() {
     const provider = new GoogleAuthProvider();
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    provider.setCustomParameters({ prompt: 'select_account' });
 
-    if (isMobile) {
-        signInWithRedirect(auth, provider).catch(error => {
-            alert("Erro ao realizar login: " + error.message);
-        });
-    } else {
-        signInWithPopup(auth, provider).catch(error => {
-            if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-                signInWithRedirect(auth, provider);
-            } else {
-                alert("Erro ao realizar login: " + error.message);
+    try {
+        // Tenta popup primeiro em todas as plataformas (o comportamento padrão moderno e estável)
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        console.warn("Popup falhou ou foi bloqueado. Tentando via Redirect...", error);
+        // Se o popup for explicitamente bloqueado pelo navegador mobile, recorre ao redirect
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+            try {
+                await signInWithRedirect(auth, provider);
+            } catch (redirectError) {
+                alert("Erro ao redirecionar para o login: " + redirectError.message);
             }
-        });
+        } else {
+            alert("Erro ao realizar login: " + error.message);
+        }
     }
 };
 
@@ -418,7 +431,6 @@ window.renderTable = function() {
                 </td>
             `;
 
-            // Atribui os valores de forma segura para evitar quebra de strings com aspas
             tr.querySelector(`#editNumero_${indexNoBanco}`).value = item.numero;
             tr.querySelector(`#editEditora_${indexNoBanco}`).value = item.editora || '';
             tr.querySelector(`#editCategoria_${indexNoBanco}`).value = item.categoria || '';
