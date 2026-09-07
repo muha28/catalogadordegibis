@@ -30,10 +30,16 @@ body {
 #loginScreen {
     max-width: 450px;
     margin: 80px auto 0 auto;
-    background: #ffffff;
+    
+    /* Aponta para a pasta assets na raiz */
+    background-image: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url('../assets/bg-login.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    
     padding: 40px 30px;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     border: 1px solid #e2e8f0;
     text-align: center;
 }
