@@ -8,7 +8,7 @@
     <!-- CSS Principal -->
     <link rel="stylesheet" href="css/style.css">
     
-    <!-- Bibliotecas Externas para Gerar PDF -->
+    <!-- Bibliotecas Externas (PDF e Firebase/Lógica do Projeto) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
@@ -32,11 +32,11 @@
                 <label for="sheetSelect"><strong>Personagem:</strong></label>
                 <select id="sheetSelect" onchange="changeSheet()"></select>
                 
-                <button type="button" class="btn-action" onclick="createNewSheet()">➕ Nova Lista</button>
-                <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
+                <button type="button" class="btn-action" onclick="createNewSheet()">+ Nova Lista</button>
+                <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">Excluir Lista</button>
             </div>
 
-            <!-- Submenu de Opções Avançadas -->
+            <!-- Submenu de Opções (Backup e Exportar PDF) -->
             <div class="settings-dropdown">
                 <button type="button" class="btn-settings" onclick="toggleSettingsMenu(event)">⚙️ Opções ▾</button>
                 
@@ -83,7 +83,7 @@
                 <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº..." oninput="filterTable()">
             </div>
             <div class="category-filter">
-                <label for="categoryFilter">📁 Filtrar por Categoria:</label>
+                <label for="categoryFilter">📂 Filtrar por Categoria:</label>
                 <select id="categoryFilter" onchange="filterTable()">
                     <option value="">Todas as Categorias</option>
                 </select>
@@ -103,39 +103,39 @@
                         <th>SÉRIE/FASE</th>
                         <th>DATA</th>
                         <th>ESTADO</th>
-                        <th class="no-pdf">AÇÕES</th>
+                        <th class="no-pdf actions-cell">AÇÕES</th>
                     </tr>
                 </thead>
                 <tbody id="gibiTableBody">
-                    <!-- Linhas geradas dinamicamente via JavaScript -->
+                    <!-- Linhas geradas dinamicamente pelo JavaScript -->
                 </tbody>
             </table>
         </div>
 
     </div>
 
-    <!-- Script de Controle do Submenu e Lógica -->
+    <!-- Script Inline Seguro do Submenu -->
     <script>
         function toggleSettingsMenu(event) {
-            event.stopPropagation();
-            const menu = document.getElementById('settingsMenu');
-            menu.classList.toggle('show');
+            if (event) event.stopPropagation();
+            var menu = document.getElementById('settingsMenu');
+            if (menu) menu.classList.toggle('show');
         }
 
         function closeSettingsMenu() {
-            const menu = document.getElementById('settingsMenu');
+            var menu = document.getElementById('settingsMenu');
             if (menu) menu.classList.remove('show');
         }
 
-        // Fecha o submenu ao clicar em qualquer ponto fora dele
         window.addEventListener('click', function(e) {
-            if (!e.target.matches('.btn-settings')) {
-                closeSettingsMenu();
+            var menu = document.getElementById('settingsMenu');
+            if (menu && !e.target.matches('.btn-settings')) {
+                menu.classList.remove('show');
             }
         });
     </script>
 
-    <!-- Scripts da Aplicação -->
-    <script type="module" src="js/app.js?v=3.2"></script>
+    <!-- Script Principal da Aplicação -->
+    <script src="js/app.js"></script>
 </body>
 </html>
