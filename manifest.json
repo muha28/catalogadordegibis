@@ -1,0 +1,23 @@
+{
+  "name": "Catalogador de Gibis",
+  "short_name": "Gibis",
+  "description": "Catalogador e gerenciador de coleção de gibis na nuvem",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#2E4057",
+  "theme_color": "#2E4057",
+  "icons": [
+    {
+      "src": "assets/bg-login.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/bg-login.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
