@@ -499,15 +499,26 @@ window.renderTable = function() {
     });
 };
 
-// 10. Funções do Backup JSON
+// 10. Funções do Backup JSON (Completo para TODAS as listas)
 window.exportarBackup = function() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ database, fundosPersonagens }));
+    if (!database || Object.keys(database).length === 0) {
+        alert("Não há dados para exportar.");
+        return;
+    }
+
+    // Exporta o objeto completo 'database' contendo todas as listas/coleções
+    const backupData = JSON.stringify({ database, fundosPersonagens }, null, 2);
+    const blob = new Blob([backupData], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
     const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `backup_gibis_${new Date().toISOString().slice(0,10)}.json`);
+    downloadAnchor.href = url;
+    downloadAnchor.download = `backup_completo_catalogador_${new Date().toISOString().slice(0,10)}.json`;
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
+    
     downloadAnchor.remove();
+    URL.revokeObjectURL(url);
 };
 
 window.importarBackup = function(event) {
@@ -518,23 +529,33 @@ window.importarBackup = function(event) {
     reader.onload = async function(e) {
         try {
             const data = JSON.parse(e.target.result);
-            if (data.database) {
+            if (data && data.database) {
                 database = data.database;
-                if (data.fundosPersonagens) fundosPersonagens = data.fundosPersonagens;
+                if (data.fundosPersonagens) {
+                    fundosPersonagens = data.fundosPersonagens;
+                }
+                
+                // Salva o banco restaurado no Firestore
                 await saveData();
+
+                // Define a lista visível para a primeira existente no novo banco
+                const sheets = Object.keys(database);
+                currentSheet = sheets.length > 0 ? sheets[0] : "";
+
                 init();
-                alert("Backup restaurado com sucesso!");
+                alert("Backup de TODAS as listas foi restaurado com sucesso!");
             } else {
-                alert("Arquivo de backup inválido.");
+                alert("Arquivo de backup inválido. A chave 'database' não foi encontrada.");
             }
         } catch (err) {
-            alert("Erro ao ler o arquivo de backup.");
+            console.error(err);
+            alert("Erro ao ler o arquivo de backup. Verifique se é um arquivo JSON válido.");
         }
     };
     reader.readAsText(file);
 };
 
-// 11. Exportação para PDF
+// 11. Exportação para PDF (Gera o PDF da lista atual)
 window.exportToPDF = function() {
     const element = document.getElementById('pdfContent');
     const actionCols = document.querySelectorAll('.no-pdf');
