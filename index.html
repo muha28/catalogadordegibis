@@ -80,14 +80,16 @@
         
         <!-- Barra de Filtros e Busca Integrada -->
         <div class="filter-bar no-pdf">
-            <div class="search-box" style="margin-bottom: 10px;">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar por editora, nº, ano, estado..." oninput="renderTable()">
-            </div>
+            <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Buscar por editora, nº, ano, estado..." oninput="renderTable()">
+    </div>
 
-            <label for="categoryFilter">📂 Filtrar por Categoria:</label>
-            <select id="categoryFilter" onchange="renderTable()">
-                <option value="TODAS">Todas as Categorias</option>
-            </select>
+    <div class="category-box">
+        <label for="categoryFilter">📂 Filtrar por Categoria:</label>
+        <select id="categoryFilter" onchange="renderTable()">
+            <option value="TODAS">Todas as Categorias</option>
+        </select>
+    </div>
         </div>
 
         <div class="table-responsive">
