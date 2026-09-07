@@ -1,6 +1,5 @@
-// sw.js - Service Worker básico para ativar o prompt de instalação PWA
-
-const CACHE_NAME = 'gibis-app-v6';
+// sw.js - Service Worker atualizado para v7
+const CACHE_NAME = 'gibis-app-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -10,7 +9,6 @@ const ASSETS_TO_CACHE = [
   './assets/bg-login.png'
 ];
 
-// Instalação do Service Worker e cache dos arquivos estáticos
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -20,7 +18,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Ativação e limpeza de caches antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -36,11 +33,22 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Intercepta requisições para responder via cache quando offline
+// Estratégia Network First (prioriza dados da rede para evitar travar sessões)
 self.addEventListener('fetch', (event) => {
+  // Ignora requisições para Firebase API e Google Auth para não interferir na autenticação
+  if (event.request.url.includes('googleapis.com') || event.request.url.includes('firebase')) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((response) => {
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseClone);
+        });
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
