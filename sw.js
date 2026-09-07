@@ -1,5 +1,5 @@
-// sw.js - Service Worker atualizado para v7
-const CACHE_NAME = 'gibis-app-v7';
+// sw.js - Service Worker atualizado para v8
+const CACHE_NAME = 'gibis-app-v8';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -24,6 +24,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
+            console.log('Removendo cache antigo:', cache);
             return caches.delete(cache);
           }
         })
@@ -33,9 +34,9 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Estratégia Network First (prioriza dados da rede para evitar travar sessões)
+// Estratégia Network First com validação de status
 self.addEventListener('fetch', (event) => {
-  // Ignora requisições para Firebase API e Google Auth para não interferir na autenticação
+  // Ignora chamadas do Firebase/Google APIs
   if (event.request.url.includes('googleapis.com') || event.request.url.includes('firebase')) {
     return;
   }
@@ -43,12 +44,18 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
+        // Só atualiza o cache se a resposta da rede for válida (HTTP 200)
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => {
+        // Se estiver offline ou a rede falhar, busca do cache
+        return caches.match(event.request);
+      })
   );
 });
