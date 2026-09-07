@@ -6,7 +6,9 @@ import {
     getRedirectResult, 
     GoogleAuthProvider, 
     signOut, 
-    onAuthStateChanged 
+    onAuthStateChanged,
+    setPersistence,
+    browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
@@ -25,39 +27,53 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+// Força a persistência local da sessão (evita perder o login ao redirecionar)
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+
 let fundosPersonagens = { "default": "" };
 let database = {};
 let currentSheet = "";
 let editingIndex = null;
 let currentUser = null;
 
-// Trata o retorno do login por redirecionamento no mobile
-getRedirectResult(auth).catch((error) => {
-    console.error("Erro no retorno do login via redirect:", error);
-});
-
-onAuthStateChanged(auth, async (user) => {
-    const loginScreen = document.getElementById('loginScreen');
-    const mainApp = document.getElementById('mainApp');
-    const statusEl = document.getElementById('userStatus');
-
-    if (user) {
-        currentUser = user;
-        if (statusEl) statusEl.innerText = `Usuário: ${user.displayName || user.email}`;
-        if (loginScreen) loginScreen.style.display = 'none';
-        if (mainApp) mainApp.style.display = 'block';
-        
-        await loadUserData();
-        init();
-    } else {
-        currentUser = null;
-        database = {};
-        if (loginScreen) loginScreen.style.display = 'block';
-        if (mainApp) mainApp.style.display = 'none';
+// Processa o retorno do login por redirecionamento
+async function handleAuthRedirect() {
+    try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+            console.log("Login por redirect realizado com sucesso:", result.user);
+        }
+    } catch (error) {
+        console.error("Erro no retorno do login via redirect:", error);
+        alert("Erro na autenticação: " + error.message);
     }
+}
+
+// Inicializa a verificação do Auth
+handleAuthRedirect().then(() => {
+    onAuthStateChanged(auth, async (user) => {
+        const loginScreen = document.getElementById('loginScreen');
+        const mainApp = document.getElementById('mainApp');
+        const statusEl = document.getElementById('userStatus');
+
+        if (user) {
+            currentUser = user;
+            if (statusEl) statusEl.innerText = `Usuário: ${user.displayName || user.email}`;
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (mainApp) mainApp.style.display = 'block';
+            
+            await loadUserData();
+            init();
+        } else {
+            currentUser = null;
+            database = {};
+            if (loginScreen) loginScreen.style.display = 'block';
+            if (mainApp) mainApp.style.display = 'none';
+        }
+    });
 });
 
-// Login com suporte a Mobile (Redirect) e Desktop (Popup)
+// Login adaptativo
 window.loginWithGoogle = function() {
     const provider = new GoogleAuthProvider();
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -206,7 +222,6 @@ window.changeSheet = function() {
     init(); 
 };
 
-// Faz o upload da capa para o Firebase Storage
 async function uploadCapa(file) {
     if (!file || !currentUser) return "";
     try {
@@ -286,7 +301,6 @@ window.saveEdit = async function(index) {
     renderTable();
 };
 
-/* Modal de Zoom da Capa */
 window.openImageModal = function(src) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('imgModalTarget');
@@ -301,7 +315,6 @@ window.closeImageModal = function() {
     if (modal) modal.style.display = 'none';
 };
 
-/* Renderização e Pesquisa Avançada Multi-termo */
 window.renderTable = function() {
     const tbody = document.getElementById('tableBody'); 
     if (!tbody) return;
@@ -316,12 +329,10 @@ window.renderTable = function() {
 
     let itemsToRender = [...database[currentSheet]];
 
-    // 1. Filtro de Categoria
     if (selectedFilter !== "TODAS") {
         itemsToRender = itemsToRender.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
     }
 
-    // 2. Pesquisa Avançada Multi-termo
     if (rawSearch !== "") {
         const terms = rawSearch.split(/\s+/);
 
