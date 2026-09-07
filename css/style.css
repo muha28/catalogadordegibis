@@ -310,7 +310,7 @@ tr:hover { background-color: #e9ecef; }
 
 /* --- CONFIGURAÇÃO DA IMAGEM DE FUNDO DO LOGIN --- */
 body:has(#loginScreen:not([style*="display: none"])) {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url('../assets/30-gibi (1).png');
+    background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url('../assets/bg-login.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
