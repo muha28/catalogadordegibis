@@ -12,6 +12,7 @@ body {
     background-color: #f4f6f9;
     color: #333;
     padding: 20px;
+    min-height: 100vh;
 }
 
 .container {
@@ -24,7 +25,46 @@ body {
 }
 
 /* ==========================================================================
-   2. CABEÇALHO E LOGIN
+   2. TELA DE LOGIN (Restaurada com Card e Sombra)
+   ========================================================================== */
+#loginScreen {
+    max-width: 450px;
+    margin: 80px auto 0 auto;
+    background: #ffffff;
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+#loginScreen h1 {
+    font-size: 1.6rem;
+    color: #1e293b;
+    margin-bottom: 12px;
+}
+
+#loginScreen p {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+#loginScreen .btn-action {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+}
+
+#loginScreen .btn-action:hover {
+    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* ==========================================================================
+   3. CABEÇALHO E MENSAGENS
    ========================================================================== */
 .user-header {
     display: flex;
@@ -53,7 +93,7 @@ body {
 }
 
 /* ==========================================================================
-   3. BARRA DE CONTROLES E BOTÕES
+   4. BARRA DE CONTROLES E BOTÕES
    ========================================================================== */
 .controls {
     display: flex;
@@ -91,7 +131,7 @@ button {
     border-radius: 6px;
     font-size: 0.9rem;
     font-weight: 600;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .btn-action, .btn-add {
@@ -171,7 +211,7 @@ button {
 }
 
 /* ==========================================================================
-   4. FORMULÁRIO DE ADIÇÃO
+   5. FORMULÁRIO DE ADIÇÃO
    ========================================================================== */
 .gibi-form {
     background-color: #f8fafc;
@@ -197,7 +237,7 @@ button {
 }
 
 /* ==========================================================================
-   5. BARRA DE FILTROS E BUSCA
+   6. BARRA DE FILTROS E BUSCA
    ========================================================================== */
 .filter-bar {
     display: flex;
@@ -213,7 +253,7 @@ button {
 }
 
 /* ==========================================================================
-   6. TABELA E CAPAS DOS GIBIS (Ajuste da Imagem Grande)
+   7. TABELA E CAPAS DOS GIBIS
    ========================================================================== */
 .table-responsive {
     overflow-x: auto;
@@ -242,7 +282,7 @@ th {
     letter-spacing: 0.5px;
 }
 
-/* FIX DA CAPA GIGANTE: Força a coluna e a imagem a ficarem pequenas */
+/* Formatação da capa mini */
 .capa-cell {
     width: 70px;
     text-align: center;
@@ -295,7 +335,6 @@ th {
     margin: 2px;
 }
 
-/* Inputs de Edição na Tabela */
 td input[type="text"], td input[type="number"] {
     width: 100%;
     padding: 4px 6px;
@@ -303,7 +342,7 @@ td input[type="text"], td input[type="number"] {
 }
 
 /* ==========================================================================
-   7. IMPRESSÃO E PDF
+   8. IMPRESSÃO E PDF
    ========================================================================== */
 @media print {
     .no-pdf {
