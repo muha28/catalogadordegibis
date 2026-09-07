@@ -10,6 +10,14 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f4f6f9;
+    
+    /* Imagem de fundo ocupando toda a tela */
+    background-image: url('../assets/bg-login.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    
     color: #333;
     padding: 20px;
     min-height: 100vh;
@@ -25,22 +33,20 @@ body {
 }
 
 /* ==========================================================================
-   2. TELA DE LOGIN (Restaurada com Card e Sombra)
+   2. TELA DE LOGIN (Card Centralizado sobre a Imagem)
    ========================================================================== */
 #loginScreen {
     max-width: 450px;
     margin: 80px auto 0 auto;
     
-    /* Aponta para a pasta assets na raiz */
-    background-image: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url('../assets/bg-login.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    /* Fundo branco levemente translúcido para destacar o conteúdo sobre a imagem */
+    background-color: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(5px); /* Efeito opcional de desfoque elegante */
     
     padding: 40px 30px;
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-    border: 1px solid #e2e8f0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     text-align: center;
 }
 
@@ -51,7 +57,7 @@ body {
 }
 
 #loginScreen p {
-    color: #64748b;
+    color: #475569;
     font-size: 0.95rem;
     margin-bottom: 25px;
     line-height: 1.5;
