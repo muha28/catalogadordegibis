@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Catalogador de Gibis</title>
-    
+
     <!-- CSS Principal -->
     <link rel="stylesheet" href="css/style.css">
-    
-    <!-- Bibliotecas Externas para Gerar PDF -->
+
+    <!-- Bibliotecas Externas (PDF) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
     <div class="container">
-        
+
         <!-- Cabeçalho / Barra do Usuário -->
         <header class="user-header no-pdf">
             <span id="userGreeting">Usuário: Carregando...</span>
-            <button type="button" class="btn-logout" id="btnLogout">Sair</button>
+            <button type="button" class="btn-logout" onclick="window.logout ? window.logout() : null">Sair</button>
         </header>
 
         <!-- Título do Aplicativo -->
@@ -30,31 +30,31 @@
         <div class="controls no-pdf">
             <div class="main-controls">
                 <label for="sheetSelect"><strong>Personagem:</strong></label>
-                <select id="sheetSelect"></select>
-                
-                <button type="button" class="btn-action" id="btnCreateSheet">+ Nova Lista</button>
-                <button type="button" class="btn-delete-sheet" id="btnDeleteSheet">Excluir Lista</button>
+                <select id="sheetSelect" onchange="window.changeSheet ? window.changeSheet() : null"></select>
+
+                <button type="button" class="btn-action" onclick="window.createNewSheet ? window.createNewSheet() : null">+ Nova Lista</button>
+                <button type="button" class="btn-delete-sheet" onclick="window.deleteCurrentSheet ? window.deleteCurrentSheet() : null">Excluir Lista</button>
             </div>
 
-            <!-- Submenu de Opções Avançadas -->
+            <!-- Submenu de Opções (Backup e Exportar PDF) -->
             <div class="settings-dropdown">
-                <button type="button" class="btn-settings" id="btnSettingsToggle">⚙️ Opções ▾</button>
-                
+                <button type="button" class="btn-settings" onclick="toggleSettingsMenu(event)">⚙️ Opções ▾</button>
+
                 <div id="settingsMenu" class="dropdown-content">
-                    <button type="button" class="btn-menu-item" id="btnExportBackup">💾 Baixar Backup</button>
-                    
+                    <button type="button" class="btn-menu-item" onclick="if(window.exportarBackup) window.exportarBackup(); closeSettingsMenu();">💾 Baixar Backup</button>
+
                     <label class="btn-menu-item">
                         📂 Restaurar Backup
-                        <input type="file" id="importInput" accept=".json" hidden>
+                        <input type="file" id="importInput" onchange="if(window.importarBackup) window.importarBackup(event); closeSettingsMenu();" accept=".json" hidden>
                     </label>
 
-                    <button type="button" class="btn-menu-item" id="btnExportPDF">📄 Exportar PDF</button>
+                    <button type="button" class="btn-menu-item" onclick="if(window.exportToPDF) window.exportToPDF(); closeSettingsMenu();">📄 Exportar PDF</button>
                 </div>
             </div>
         </div>
 
         <!-- Formulário para Adicionar Novo Gibi -->
-        <form id="gibiForm" class="gibi-form no-pdf">
+        <form id="gibiForm" class="gibi-form no-pdf" onsubmit="if(window.addGibi) window.addGibi(event);">
             <div class="form-grid">
                 <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
                 <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)">
@@ -63,7 +63,7 @@
                 <input type="text" id="dataPublicacao" placeholder="Mês/Ano (ex: Jan/1980)">
                 <input type="text" id="estado" placeholder="Estado (ex: Bom)">
             </div>
-            
+
             <div class="form-file-row">
                 <label for="capa" class="file-label">Imagem da Capa (Opcional):</label>
                 <input type="file" id="capa" accept="image/*">
@@ -80,11 +80,11 @@
         <!-- Filtros e Busca -->
         <div class="filter-bar no-pdf">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº...">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº..." oninput="if(window.filterTable) window.filterTable();">
             </div>
             <div class="category-filter">
                 <label for="categoryFilter">📂 Filtrar por Categoria:</label>
-                <select id="categoryFilter">
+                <select id="categoryFilter" onchange="if(window.filterTable) window.filterTable();">
                     <option value="">Todas as Categorias</option>
                 </select>
             </div>
@@ -114,28 +114,28 @@
 
     </div>
 
-    <!-- Script Inline Seguro do Submenu de Opções -->
+    <!-- Controle do Submenu Dropdown -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var btnToggle = document.getElementById('btnSettingsToggle');
+        function toggleSettingsMenu(event) {
+            if (event) event.stopPropagation();
             var menu = document.getElementById('settingsMenu');
+            if (menu) menu.classList.toggle('show');
+        }
 
-            if (btnToggle && menu) {
-                btnToggle.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    menu.classList.toggle('show');
-                });
+        function closeSettingsMenu() {
+            var menu = document.getElementById('settingsMenu');
+            if (menu) menu.classList.remove('show');
+        }
 
-                window.addEventListener('click', function(e) {
-                    if (!e.target.matches('#btnSettingsToggle')) {
-                        menu.classList.remove('show');
-                    }
-                });
+        window.addEventListener('click', function(e) {
+            var menu = document.getElementById('settingsMenu');
+            if (menu && !e.target.matches('.btn-settings')) {
+                menu.classList.remove('show');
             }
         });
     </script>
 
-    <!-- Script da Aplicação carregado como MÓDULO (resolve o erro de import) -->
+    <!-- Script Principal como Módulo -->
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
