@@ -122,6 +122,8 @@ function updateSheetDropdown() {
 
 function updateCategoryFilterOptions() {
     const filterSelect = document.getElementById('categoryFilter');
+    if (!filterSelect) return;
+    
     const selectedValue = filterSelect.value;
     filterSelect.innerHTML = '<option value="TODAS">Todas as Categorias</option>';
 
@@ -167,6 +169,11 @@ window.deleteCurrentSheet = async function() {
 
 window.changeSheet = function() { 
     currentSheet = document.getElementById('sheetSelect').value; 
+    
+    // Reseta a busca ao trocar de lista
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+
     init(); 
 };
 
@@ -257,18 +264,44 @@ window.closeImageModal = function() {
     document.getElementById('imageModal').style.display = 'none';
 };
 
+/* Renderização e Filtragem por Categoria e Busca em Tempo Real */
 window.renderTable = function() {
     const tbody = document.getElementById('tableBody'); 
-    const selectedFilter = document.getElementById('categoryFilter').value;
+    const selectedFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
     tbody.innerHTML = '';
 
     if (!database[currentSheet]) return;
 
     let itemsToRender = [...database[currentSheet]];
+
+    // 1. Aplica o filtro de Categoria
     if (selectedFilter !== "TODAS") {
         itemsToRender = itemsToRender.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
     }
 
+    // 2. Aplica o filtro da Busca Rápida (compara em todos os campos do gibi)
+    if (searchTerm !== "") {
+        itemsToRender = itemsToRender.filter(item => {
+            const numeroStr = item.numero ? item.numero.toString() : "";
+            const editora = (item.editora || "").toLowerCase();
+            const categoria = (item.categoria || "").toLowerCase();
+            const serie = (item.serie || "").toLowerCase();
+            const data = (item.data || "").toLowerCase();
+            const estado = (item.estado || "").toLowerCase();
+
+            return numeroStr.includes(searchTerm) ||
+                   editora.includes(searchTerm) ||
+                   categoria.includes(searchTerm) ||
+                   serie.includes(searchTerm) ||
+                   data.includes(searchTerm) ||
+                   estado.includes(searchTerm);
+        });
+    }
+
+    // Ordenação por número quando não estiver em edição
     if (editingIndex === null) {
         itemsToRender.sort((a, b) => a.numero - b.numero);
     }
