@@ -25,7 +25,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Garante persistência local
+// Persistência local do Firebase Auth
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 let fundosPersonagens = { "default": "" };
@@ -34,8 +34,10 @@ let currentSheet = "";
 let editingIndex = null;
 let currentUser = null;
 
-// Função auxiliar de conversão e compressão para Base64 (Sem uso de Storage)
-function imageToBase64(file, maxWidth = 400) {
+/**
+ * Converte e comprime imagens enviadas para Base64 (otimizado para o limite de 1MB do documento do Firestore)
+ */
+function imageToBase64(file, maxWidth = 300) {
     return new Promise((resolve, reject) => {
         if (!file) return resolve("");
         const reader = new FileReader();
@@ -58,8 +60,8 @@ function imageToBase64(file, maxWidth = 400) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Converte em imagem JPEG leve e compacta
-                resolve(canvas.toDataURL('image/jpeg', 0.75));
+                // Converte em JPEG comprimido (~20-40KB por capa)
+                resolve(canvas.toDataURL('image/jpeg', 0.65));
             };
             img.onerror = (err) => reject(err);
         };
@@ -67,7 +69,7 @@ function imageToBase64(file, maxWidth = 400) {
     });
 }
 
-// 1. Processa redirecionamentos do login
+// 1. Processa retorno de redirecionamentos do login do Google
 getRedirectResult(auth)
     .then((result) => {
         if (result && result.user) {
@@ -78,7 +80,7 @@ getRedirectResult(auth)
         console.error("Erro no retorno do redirect:", error);
     });
 
-// 2. Observador Único de Estado do Usuário
+// 2. Observador de Estado de Autenticação
 onAuthStateChanged(auth, async (user) => {
     const loginScreen = document.getElementById('loginScreen');
     const mainApp = document.getElementById('mainApp');
@@ -89,7 +91,7 @@ onAuthStateChanged(auth, async (user) => {
         if (statusEl) statusEl.innerText = `Usuário: ${user.displayName || user.email}`;
         if (loginScreen) loginScreen.style.display = 'none';
         if (mainApp) mainApp.style.display = 'block';
-        
+
         await loadUserData();
         init();
     } else {
@@ -100,7 +102,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// 3. Login com fluxo limpo sem conflitos
+// 3. Funções Globais de Autenticação
 window.loginWithGoogle = async function() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -108,7 +110,7 @@ window.loginWithGoogle = async function() {
     try {
         await signInWithPopup(auth, provider);
     } catch (error) {
-        console.warn("Popup falhou/bloqueado. Recorrendo a Redirect:", error);
+        console.warn("Popup falhou/bloqueado. Tentando via Redirect:", error);
         if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
             try {
                 await signInWithRedirect(auth, provider);
@@ -125,6 +127,7 @@ window.logout = function() {
     signOut(auth);
 };
 
+// 4. Operações de Banco de Dados (Firestore)
 async function saveData() { 
     if (!currentUser) return;
     try {
@@ -134,7 +137,7 @@ async function saveData() {
         });
     } catch (err) {
         console.error("Erro ao salvar no Firebase:", err);
-        alert("Erro ao salvar alterações no banco de dados.");
+        alert("Erro ao salvar alterações. O arquivo pode ter ultrapassado o limite máximo suportado.");
     }
 }
 
@@ -158,6 +161,7 @@ async function loadUserData() {
     }
 }
 
+// 5. Inicialização e Atualização de Interface
 function init() { 
     const sheets = Object.keys(database);
     if (sheets.length === 0) {
@@ -177,7 +181,7 @@ function updateSheetDropdown() {
     const select = document.getElementById('sheetSelect');
     if (!select) return;
     select.innerHTML = '';
-    
+
     const sortedSheets = Object.keys(database).sort((a, b) => 
         a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
     );
@@ -197,7 +201,7 @@ function updateSheetDropdown() {
 function updateCategoryFilterOptions() {
     const filterSelect = document.getElementById('categoryFilter');
     if (!filterSelect) return;
-    
+
     const selectedValue = filterSelect.value;
     filterSelect.innerHTML = '<option value="TODAS">Todas as Categorias</option>';
 
@@ -217,6 +221,7 @@ function updateCategoryFilterOptions() {
     filterSelect.value = categorias.includes(selectedValue) ? selectedValue : "TODAS";
 }
 
+// 6. Manipulação de Listas/Coleções
 window.createNewSheet = async function() {
     const name = prompt("Nome do Personagem/Lista:");
     if (name && name.trim() !== "") {
@@ -237,7 +242,7 @@ window.deleteCurrentSheet = async function() {
         delete database[currentSheet];
         delete fundosPersonagens[currentSheet];
         await saveData();
-        
+
         const remaining = Object.keys(database);
         currentSheet = remaining.length > 0 ? remaining[0] : "";
         init();
@@ -253,6 +258,7 @@ window.changeSheet = function() {
     init(); 
 };
 
+// 7. Manipulação dos Items (Gibis)
 window.addGibi = async function(event) {
     event.preventDefault();
     const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -302,8 +308,15 @@ window.deleteGibi = async function(index) {
     }
 };
 
-window.startEdit = function(index) { editingIndex = index; renderTable(); };
-window.cancelEdit = function() { editingIndex = null; renderTable(); };
+window.startEdit = function(index) { 
+    editingIndex = index; 
+    renderTable(); 
+};
+
+window.cancelEdit = function() { 
+    editingIndex = null; 
+    renderTable(); 
+};
 
 window.saveEdit = async function(index) {
     const fileInput = document.getElementById(`editCapa_${index}`);
@@ -329,6 +342,7 @@ window.saveEdit = async function(index) {
     renderTable();
 };
 
+// 8. Modal de Imagem
 window.openImageModal = function(src) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('imgModalTarget');
@@ -343,6 +357,7 @@ window.closeImageModal = function() {
     if (modal) modal.style.display = 'none';
 };
 
+// 9. Renderização da Tabela
 window.renderTable = function() {
     const tbody = document.getElementById('tableBody'); 
     if (!tbody) return;
@@ -379,6 +394,7 @@ window.renderTable = function() {
         });
     }
 
+    // Ordena por número se não estiver no modo edição
     if (editingIndex === null) {
         itemsToRender.sort((a, b) => a.numero - b.numero);
     }
@@ -403,13 +419,22 @@ window.renderTable = function() {
                 </td>
             `;
 
-            tr.querySelector(`#editNumero_${indexNoBanco}`).value = item.numero;
-            tr.querySelector(`#editEditora_${indexNoBanco}`).value = item.editora || '';
-            tr.querySelector(`#editEditora_${indexNoBanco}`).value = item.editora || '';
-            tr.querySelector(`#editCategoria_${indexNoBanco}`).value = item.categoria || '';
-            tr.querySelector(`#editSerie_${indexNoBanco}`).value = item.serie || '';
-            tr.querySelector(`#editData_${indexNoBanco}`).value = item.data || '';
-            tr.querySelector(`#editEstado_${indexNoBanco}`).value = item.estado || '';
+            // Preenche os inputs após a inserção no DOM
+            setTimeout(() => {
+                const elNum = tr.querySelector(`#editNumero_${indexNoBanco}`);
+                const elEd = tr.querySelector(`#editEditora_${indexNoBanco}`);
+                const elCat = tr.querySelector(`#editCategoria_${indexNoBanco}`);
+                const elSer = tr.querySelector(`#editSerie_${indexNoBanco}`);
+                const elData = tr.querySelector(`#editData_${indexNoBanco}`);
+                const elEst = tr.querySelector(`#editEstado_${indexNoBanco}`);
+
+                if (elNum) elNum.value = item.numero;
+                if (elEd) elEd.value = item.editora || '';
+                if (elCat) elCat.value = item.categoria || '';
+                if (elSer) elSer.value = item.serie || '';
+                if (elData) elData.value = item.data || '';
+                if (elEst) elEst.value = item.estado || '';
+            }, 0);
 
         } else {
             const tdCapa = document.createElement('td');
@@ -474,6 +499,7 @@ window.renderTable = function() {
     });
 };
 
+// 10. Funções do Backup JSON
 window.exportarBackup = function() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ database, fundosPersonagens }));
     const downloadAnchor = document.createElement('a');
@@ -508,6 +534,7 @@ window.importarBackup = function(event) {
     reader.readAsText(file);
 };
 
+// 11. Exportação para PDF
 window.exportToPDF = function() {
     const element = document.getElementById('pdfContent');
     const actionCols = document.querySelectorAll('.no-pdf');
@@ -522,7 +549,12 @@ window.exportToPDF = function() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
     };
 
-    html2pdf().set(opt).from(element).save().then(() => { 
-        actionCols.forEach(el => el.style.display = ''); 
-    });
+    if (window.html2pdf) {
+        window.html2pdf().set(opt).from(element).save().then(() => { 
+            actionCols.forEach(el => el.style.display = ''); 
+        });
+    } else {
+        alert("A biblioteca html2pdf não foi encontrada na página.");
+        actionCols.forEach(el => el.style.display = '');
+    }
 };
