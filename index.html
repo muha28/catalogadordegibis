@@ -3,134 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalogador de Gibis da Bibi</title>
-
-    <!-- Manifesto PWA -->
-    <link rel="manifest" href="manifest.json">
-
-    <!-- Configurações do Ícone no Mobile -->
-    <link rel="icon" type="image/png" href="assets/bg-login.png">
-    <link rel="apple-touch-icon" href="assets/bg-login.png">
-
-    <!-- Suporte Legado WebApp -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#2E4057">
-
-    <!-- Fontes e Estilos -->
-    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Meu Catalogador de Gibis</title>
+    
+    <!-- CSS Principal -->
     <link rel="stylesheet" href="css/style.css">
-
-    <!-- Bibliotecas PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Bibliotecas Externas para Gerar PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
-<div id="loginScreen" class="container auth-gate">
-    <h1>📚 Catalogador de Gibis</h1>
-    <p>Acesse com sua conta do Google para visualizar e gerenciar sua coleção na nuvem.</p>
-    <button type="button" class="btn-google-large" onclick="loginWithGoogle()">
-        🔑 Entrar com o Google
-    </button>
-</div>
-
-<div id="mainApp" class="container" style="display: none;">
-    <div class="auth-bar">
-        <span id="userStatus">Carregando...</span>
-        <button type="button" class="btn-restore" onclick="logout()">Sair</button>
-    </div>
-
-    <h1>📚 Meu Catalogador de Gibis</h1>
-
-    <!-- Barra de Ferramentas Única Alinhada -->
-    <div class="controls no-pdf">
-        <label for="sheetSelect"><strong>Personagem:</strong></label>
-        <select id="sheetSelect" onchange="changeSheet()"></select>
+    <div class="container">
         
-        <button type="button" onclick="createNewSheet()">➕ Nova Lista</button>
-        <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
-        <button type="button" class="btn-backup" onclick="exportarBackup()">💾 Baixar Backup</button>
-        
-        <label class="btn btn-restore file-button-label">
-            📂 Restaurar Backup
-            <input type="file" id="importInput" onchange="importarBackup(event)" accept=".json" hidden>
-        </label>
+        <!-- Cabeçalho / Barra do Usuário -->
+        <header class="user-header no-pdf">
+            <span id="userGreeting">Usuário: Carregando...</span>
+            <button type="button" class="btn-logout" onclick="logout()">Sair</button>
+        </header>
 
-        <button type="button" class="btn-pdf" onclick="exportToPDF()">📄 Exportar PDF</button>
-    </div>
+        <!-- Título do Aplicativo -->
+        <div class="app-title">
+            <h1>📚 MEU CATALOGADOR DE GIBIS</h1>
+        </div>
 
-    <form id="addGibiForm" class="no-pdf" onsubmit="addGibi(event)">
-        <div class="form-grid">
-            <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
-            <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)" required>
-            <input type="text" id="serie" placeholder="Série/Fase (ex: 1ª Série)" required>
-            <input type="number" id="numero" placeholder="Número (ex: 1)" required>
-            <input type="text" id="data" placeholder="Mês/Ano (ex: Jan/1987)">
-            <input type="text" id="estado" placeholder="Estado (ex: Bom)">
-            
-            <div class="file-wrapper">
-                <label for="capaInput">Imagem da Capa (Opcional):</label>
-                <input type="file" id="capaInput" accept="image/*">
+        <!-- Barra de Controles (Ações da Lista e Submenu de Opções) -->
+        <div class="controls no-pdf">
+            <div class="main-controls">
+                <label for="sheetSelect"><strong>Personagem:</strong></label>
+                <select id="sheetSelect" onchange="changeSheet()"></select>
+                
+                <button type="button" class="btn-action" onclick="createNewSheet()">➕ Nova Lista</button>
+                <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">🗑️ Excluir Lista</button>
             </div>
 
-            <button type="submit" class="form-submit-btn">+ Adicionar À Lista</button>
-        </div>
-    </form>
+            <!-- Submenu de Opções Avançadas -->
+            <div class="settings-dropdown">
+                <button type="button" class="btn-settings" onclick="toggleSettingsMenu(event)">⚙️ Opções ▾</button>
+                
+                <div id="settingsMenu" class="dropdown-content">
+                    <button type="button" class="btn-menu-item" onclick="exportarBackup(); closeSettingsMenu();">💾 Baixar Backup</button>
+                    
+                    <label class="btn-menu-item">
+                        📂 Restaurar Backup
+                        <input type="file" id="importInput" onchange="importarBackup(event); closeSettingsMenu();" accept=".json" hidden>
+                    </label>
 
-    <div id="pdfContent">
-        <h2 id="currentSheetTitle" style="color: var(--primary); text-align: center; margin-bottom: 12px;"></h2>
-        
+                    <button type="button" class="btn-menu-item" onclick="exportToPDF(); closeSettingsMenu();">📄 Exportar PDF</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulário para Adicionar Novo Gibi -->
+        <form id="gibiForm" class="gibi-form no-pdf" onsubmit="addGibi(event)">
+            <div class="form-grid">
+                <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
+                <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)">
+                <input type="text" id="serieFase" placeholder="Série/Fase (ex: 1ª Série)">
+                <input type="number" id="numero" placeholder="Número (ex: 1)" required>
+                <input type="text" id="dataPublicacao" placeholder="Mês/Ano (ex: Jan/1980)">
+                <input type="text" id="estado" placeholder="Estado (ex: Bom)">
+            </div>
+            
+            <div class="form-file-row">
+                <label for="capa" class="file-label">Imagem da Capa (Opcional):</label>
+                <input type="file" id="capa" accept="image/*">
+            </div>
+
+            <button type="submit" class="btn-add">+ Adicionar À Lista</button>
+        </form>
+
+        <!-- Título da Coleção Atual -->
+        <div class="collection-header">
+            <h2 id="currentCollectionTitle">COLEÇÃO: SELECIONE UM PERSONAGEM</h2>
+        </div>
+
+        <!-- Filtros e Busca -->
         <div class="filter-bar no-pdf">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº, ano, estado..." oninput="renderTable()">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº..." oninput="filterTable()">
             </div>
-
-            <div class="category-box">
-                <label for="categoryFilter">📂 Filtrar por Categoria:</label>
-                <select id="categoryFilter" onchange="renderTable()">
-                    <option value="TODAS">Todas as Categorias</option>
+            <div class="category-filter">
+                <label for="categoryFilter">📁 Filtrar por Categoria:</label>
+                <select id="categoryFilter" onchange="filterTable()">
+                    <option value="">Todas as Categorias</option>
                 </select>
             </div>
         </div>
 
+        <!-- Tabela de Gibis Catalogados -->
         <div class="table-responsive">
             <table id="gibiTable">
                 <thead>
                     <tr>
-                        <th class="capa-cell">Capa</th>
-                        <th>Personagem</th>
+                        <th>CAPA</th>
+                        <th>PERSONAGEM</th>
                         <th>Nº</th>
-                        <th>Editora</th>
-                        <th>Categoria</th>
-                        <th>Série/Fase</th>
-                        <th>Data</th>
-                        <th>Estado</th>
-                        <th class="actions-cell no-pdf">Ações</th>
+                        <th>EDITORA</th>
+                        <th>CATEGORIA</th>
+                        <th>SÉRIE/FASE</th>
+                        <th>DATA</th>
+                        <th>ESTADO</th>
+                        <th class="no-pdf">AÇÕES</th>
                     </tr>
                 </thead>
-                <tbody id="tableBody"></tbody>
+                <tbody id="gibiTableBody">
+                    <!-- Linhas geradas dinamicamente via JavaScript -->
+                </tbody>
             </table>
         </div>
+
     </div>
-</div>
 
-<div id="imageModal" class="image-modal no-pdf" onclick="closeImageModal()">
-    <span class="modal-close" onclick="closeImageModal()">&times;</span>
-    <img class="modal-content" id="imgModalTarget" alt="Capa Ampliada">
-</div>
+    <!-- Script de Controle do Submenu e Lógica -->
+    <script>
+        function toggleSettingsMenu(event) {
+            event.stopPropagation();
+            const menu = document.getElementById('settingsMenu');
+            menu.classList.toggle('show');
+        }
 
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then((reg) => console.log('Service Worker registrado com sucesso!', reg))
-        .catch((err) => console.error('Falha ao registrar Service Worker:', err));
-    });
-  }
-</script>
+        function closeSettingsMenu() {
+            const menu = document.getElementById('settingsMenu');
+            if (menu) menu.classList.remove('show');
+        }
 
-<script type="module" src="js/app.js?v=3.1"></script>
+        // Fecha o submenu ao clicar em qualquer ponto fora dele
+        window.addEventListener('click', function(e) {
+            if (!e.target.matches('.btn-settings')) {
+                closeSettingsMenu();
+            }
+        });
+    </script>
+
+    <!-- Scripts da Aplicação -->
+    <script type="module" src="js/app.js?v=3.2"></script>
 </body>
 </html>
