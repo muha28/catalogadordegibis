@@ -27,7 +27,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Força a persistência local da sessão
+// Garante persistência local
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 let fundosPersonagens = { "default": "" };
@@ -35,9 +35,8 @@ let database = {};
 let currentSheet = "";
 let editingIndex = null;
 let currentUser = null;
-let isHandlingRedirect = false;
 
-// Função auxiliar para redimensionar imagens e economizar espaço
+// Função auxiliar de compressão
 function compressImage(file, maxWidth = 600) {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -69,32 +68,19 @@ function compressImage(file, maxWidth = 600) {
     });
 }
 
-// 1. Processa o retorno do login por redirecionamento caso ocorra
-async function checkRedirectResult() {
-    isHandlingRedirect = true;
-    try {
-        const result = await getRedirectResult(auth);
+// 1. Processa redirecionamentos do login (sem travar a observação de sessão)
+getRedirectResult(auth)
+    .then((result) => {
         if (result && result.user) {
             console.log("Login via redirect concluído com sucesso:", result.user);
         }
-    } catch (error) {
-        console.error("Erro no retorno do login via redirect:", error);
-        if (error.code !== 'auth/popup-closed-by-user') {
-            alert("Erro na autenticação: " + error.message);
-        }
-    } finally {
-        isHandlingRedirect = false;
-    }
-}
+    })
+    .catch((error) => {
+        console.error("Erro no retorno do redirect:", error);
+    });
 
-// Inicia checagem de redirect imediatamente
-checkRedirectResult();
-
-// 2. Monitor do estado do Usuário (Sessão)
+// 2. Observador Único de Estado do Usuário
 onAuthStateChanged(auth, async (user) => {
-    // Evita recarregar a tela enquanto o redirect do Google ainda está processando
-    if (isHandlingRedirect) return;
-
     const loginScreen = document.getElementById('loginScreen');
     const mainApp = document.getElementById('mainApp');
     const statusEl = document.getElementById('userStatus');
@@ -115,24 +101,22 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// 3. Login com tratamento resiliente para Mobile
+// 3. Login com fluxo limpo sem conflitos
 window.loginWithGoogle = async function() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
-        // Tenta popup primeiro em todas as plataformas (o comportamento padrão moderno e estável)
         await signInWithPopup(auth, provider);
     } catch (error) {
-        console.warn("Popup falhou ou foi bloqueado. Tentando via Redirect...", error);
-        // Se o popup for explicitamente bloqueado pelo navegador mobile, recorre ao redirect
+        console.warn("Popup falhou/bloqueado. Recorrendo a Redirect:", error);
         if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
             try {
                 await signInWithRedirect(auth, provider);
             } catch (redirectError) {
-                alert("Erro ao redirecionar para o login: " + redirectError.message);
+                alert("Erro ao autenticar: " + redirectError.message);
             }
-        } else {
+        } else if (error.code !== 'auth/cancelled-popup-request') {
             alert("Erro ao realizar login: " + error.message);
         }
     }
@@ -150,7 +134,7 @@ async function saveData() {
             fundosPersonagens: fundosPersonagens
         });
     } catch (err) {
-        console.error("Erro ao salvar dados no Firebase:", err);
+        console.error("Erro ao salvar no Firebase:", err);
         alert("Erro ao salvar alterações no banco de dados.");
     }
 }
@@ -170,7 +154,7 @@ async function loadUserData() {
             await saveData();
         }
     } catch (err) {
-        console.error("Erro ao carregar dados do Firebase:", err);
+        console.error("Erro ao carregar dados:", err);
         database = { "Chico Bento": [] };
     }
 }
