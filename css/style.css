@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Meu Catalogador de Gibis - CSS Refinado & Moderno
+   Meu Catalogador de Gibis - CSS Refinado
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;500;600;700&display=swap');
@@ -44,7 +44,7 @@ body {
   margin: 0 auto;
 }
 
-/* Titles & Headers */
+/* Títulos */
 h1 {
   font-family: 'Bangers', cursive;
   font-size: 2.8rem;
@@ -68,13 +68,13 @@ h1 {
   font-weight: 500;
 }
 
-/* Controls Bar / Toolbar */
+/* Barra de Ferramentas / Controles (Flat layout) */
 .controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 15px;
+  justify-content: flex-start;
+  gap: 10px;
   background: var(--card-bg);
   padding: 16px;
   border-radius: var(--radius);
@@ -82,24 +82,18 @@ h1 {
   margin-bottom: 20px;
 }
 
-.controls-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
 .controls label {
   font-size: 0.95rem;
   color: var(--text-main);
+  margin-right: 2px;
 }
 
 .controls select {
-  min-width: 160px;
+  min-width: 150px;
   font-weight: 600;
 }
 
-/* Form Styles */
+/* Formulário de Adição */
 #addGibiForm {
   background: var(--card-bg);
   padding: 20px;
@@ -133,7 +127,7 @@ h1 {
   font-size: 1rem;
 }
 
-/* Inputs & Selects */
+/* Entradas e Seletores */
 input[type="text"],
 input[type="number"],
 select {
@@ -151,7 +145,7 @@ input:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(4, 138, 129, 0.15);
 }
 
-/* Buttons Base & Variants */
+/* Estilos de Botões */
 button, .btn {
   background-color: var(--accent);
   color: white;
@@ -193,7 +187,7 @@ button:hover, .btn:hover { background-color: var(--accent-hover); }
 .btn-save { background-color: var(--accent); padding: 5px 10px; font-size: 0.8rem; }
 .btn-cancel { background-color: var(--text-muted); padding: 5px 10px; font-size: 0.8rem; }
 
-/* Filter & Search Bar */
+/* Barra de Filtros e Pesquisa */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -211,7 +205,7 @@ button:hover, .btn:hover { background-color: var(--accent-hover); }
   min-width: 280px;
 }
 
-/* Table Styles */
+/* Tabela de Gibis */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -283,7 +277,7 @@ tr:hover {
   gap: 6px;
 }
 
-/* Image Modal */
+/* Modal para visualizar capas */
 .image-modal {
   display: none;
   position: fixed;
@@ -314,7 +308,7 @@ tr:hover {
   cursor: pointer;
 }
 
-/* Auth Gate Layout */
+/* Tela de Autenticação */
 .auth-gate {
   max-width: 450px;
   margin: 60px auto;
@@ -342,19 +336,18 @@ tr:hover {
   background-color: #357AE8;
 }
 
-/* Ocultação para Impressão e PDF */
+/* Ocultação para PDF */
 @media print {
   .no-pdf {
     display: none !important;
   }
 }
 
-/* Responsive Mobile Rules */
+/* Adaptação para Celulares */
 @media (max-width: 768px) {
   body { padding: 10px 5px; }
   h1 { font-size: 2rem; }
   .controls { flex-direction: column; align-items: stretch; }
-  .controls-group { flex-direction: column; align-items: stretch; }
   .controls select, .controls button, .controls .btn { width: 100%; }
   .filter-bar { flex-direction: column; align-items: stretch; }
   .search-box input { width: 100%; min-width: 0; }
