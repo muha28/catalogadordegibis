@@ -8,7 +8,7 @@
     <!-- CSS Principal -->
     <link rel="stylesheet" href="css/style.css">
     
-    <!-- Bibliotecas Externas (PDF e Firebase/Lógica do Projeto) -->
+    <!-- Bibliotecas Externas para Gerar PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
@@ -18,7 +18,7 @@
         <!-- Cabeçalho / Barra do Usuário -->
         <header class="user-header no-pdf">
             <span id="userGreeting">Usuário: Carregando...</span>
-            <button type="button" class="btn-logout" onclick="logout()">Sair</button>
+            <button type="button" class="btn-logout" id="btnLogout">Sair</button>
         </header>
 
         <!-- Título do Aplicativo -->
@@ -30,31 +30,31 @@
         <div class="controls no-pdf">
             <div class="main-controls">
                 <label for="sheetSelect"><strong>Personagem:</strong></label>
-                <select id="sheetSelect" onchange="changeSheet()"></select>
+                <select id="sheetSelect"></select>
                 
-                <button type="button" class="btn-action" onclick="createNewSheet()">+ Nova Lista</button>
-                <button type="button" class="btn-delete-sheet" onclick="deleteCurrentSheet()">Excluir Lista</button>
+                <button type="button" class="btn-action" id="btnCreateSheet">+ Nova Lista</button>
+                <button type="button" class="btn-delete-sheet" id="btnDeleteSheet">Excluir Lista</button>
             </div>
 
-            <!-- Submenu de Opções (Backup e Exportar PDF) -->
+            <!-- Submenu de Opções Avançadas -->
             <div class="settings-dropdown">
-                <button type="button" class="btn-settings" onclick="toggleSettingsMenu(event)">⚙️ Opções ▾</button>
+                <button type="button" class="btn-settings" id="btnSettingsToggle">⚙️ Opções ▾</button>
                 
                 <div id="settingsMenu" class="dropdown-content">
-                    <button type="button" class="btn-menu-item" onclick="exportarBackup(); closeSettingsMenu();">💾 Baixar Backup</button>
+                    <button type="button" class="btn-menu-item" id="btnExportBackup">💾 Baixar Backup</button>
                     
                     <label class="btn-menu-item">
                         📂 Restaurar Backup
-                        <input type="file" id="importInput" onchange="importarBackup(event); closeSettingsMenu();" accept=".json" hidden>
+                        <input type="file" id="importInput" accept=".json" hidden>
                     </label>
 
-                    <button type="button" class="btn-menu-item" onclick="exportToPDF(); closeSettingsMenu();">📄 Exportar PDF</button>
+                    <button type="button" class="btn-menu-item" id="btnExportPDF">📄 Exportar PDF</button>
                 </div>
             </div>
         </div>
 
         <!-- Formulário para Adicionar Novo Gibi -->
-        <form id="gibiForm" class="gibi-form no-pdf" onsubmit="addGibi(event)">
+        <form id="gibiForm" class="gibi-form no-pdf">
             <div class="form-grid">
                 <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
                 <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)">
@@ -80,11 +80,11 @@
         <!-- Filtros e Busca -->
         <div class="filter-bar no-pdf">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº..." oninput="filterTable()">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº...">
             </div>
             <div class="category-filter">
                 <label for="categoryFilter">📂 Filtrar por Categoria:</label>
-                <select id="categoryFilter" onchange="filterTable()">
+                <select id="categoryFilter">
                     <option value="">Todas as Categorias</option>
                 </select>
             </div>
@@ -114,28 +114,28 @@
 
     </div>
 
-    <!-- Script Inline Seguro do Submenu -->
+    <!-- Script Inline Seguro do Submenu de Opções -->
     <script>
-        function toggleSettingsMenu(event) {
-            if (event) event.stopPropagation();
+        document.addEventListener('DOMContentLoaded', function() {
+            var btnToggle = document.getElementById('btnSettingsToggle');
             var menu = document.getElementById('settingsMenu');
-            if (menu) menu.classList.toggle('show');
-        }
 
-        function closeSettingsMenu() {
-            var menu = document.getElementById('settingsMenu');
-            if (menu) menu.classList.remove('show');
-        }
+            if (btnToggle && menu) {
+                btnToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    menu.classList.toggle('show');
+                });
 
-        window.addEventListener('click', function(e) {
-            var menu = document.getElementById('settingsMenu');
-            if (menu && !e.target.matches('.btn-settings')) {
-                menu.classList.remove('show');
+                window.addEventListener('click', function(e) {
+                    if (!e.target.matches('#btnSettingsToggle')) {
+                        menu.classList.remove('show');
+                    }
+                });
             }
         });
     </script>
 
-    <!-- Script Principal da Aplicação -->
-    <script src="js/app.js"></script>
+    <!-- Script da Aplicação carregado como MÓDULO (resolve o erro de import) -->
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
