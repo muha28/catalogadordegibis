@@ -82,23 +82,21 @@
 
         <!-- Conteúdo Impresso/Exportado no PDF -->
         <div id="pdfContent">
-            <!-- Título da Coleção Atual -->
+            <!-- Título e Contadores da Coleção Atual -->
             <div class="collection-header">
-                <h2 id="currentSheetTitle">COLEÇÃO: SELECIONE UM PERSONAGEM</h2>
+                <div class="collection-header-content">
+                    <h2 id="currentSheetTitle">COLEÇÃO: SELECIONE UM PERSONAGEM</h2>
+                    <div class="collection-counters">
+                        <span id="counterCurrentSheet" class="counter-badge">
+                            Gibis nesta coleção: 0
+                        </span>
+                        <span id="counterTotal" class="counter-badge">
+                            Total Geral de Gibis: 0
+                        </span>
+                    </div>
+                </div>
             </div>
-            <div class="collection-header">
-    <div class="collection-header-content">
-        <h2 id="currentSheetTitle">COLEÇÃO: SELECIONE UM PERSONAGEM</h2>
-        <div class="collection-counters">
-            <span class="counter-badge">
-                Nesta Lista: <strong id="listCounter">0</strong>
-            </span>
-            <span class="counter-badge">
-                Total Geral: <strong id="totalCounter">0</strong>
-            </span>
-        </div>
-    </div>
-</div>
+
             <!-- Filtros e Busca -->
             <div class="filter-bar no-pdf">
                 <div class="search-box">
