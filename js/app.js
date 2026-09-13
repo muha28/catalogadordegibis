@@ -373,7 +373,50 @@ window.closeImageModal = function() {
     if (modal) modal.style.display = 'none';
 };
 
-// 9. Renderização da Tabela
+// ==========================================================================
+// 9. RENDERIZAÇÃO DA TABELA (Com Busca Global e Palavras Compostas)
+// ==========================================================================
+
+// Funções auxiliares para ações de edição/exclusão vindas da busca global
+window.startEditInSheet = function(sheetName, index) {
+    currentSheet = sheetName;
+    const select = document.getElementById('sheetSelect');
+    if (select) select.value = sheetName;
+    editingIndex = index;
+    renderTable();
+};
+
+window.deleteGibiInSheet = async function(sheetName, index) {
+    if (confirm(`Remover este gibi da coleção "${sheetName}"?`)) { 
+        database[sheetName].splice(index, 1); 
+        if (editingIndex === index) editingIndex = null;
+        await saveData(); 
+        updateCategoryFilterOptions();
+        renderTable(); 
+    }
+};
+
+// Função para atualizar os contadores na tela de forma inteligente
+function updateCounters(renderedCount = 0, isGlobal = false) {
+    const totalCurrentSheet = database[currentSheet] ? database[currentSheet].length : 0;
+    const totalAllSheets = Object.values(database).reduce((acc, sheet) => acc + (Array.isArray(sheet) ? sheet.length : 0), 0);
+
+    const listCounterEl = document.getElementById('listCounter') || document.getElementById('counterCurrentSheet');
+    if (listCounterEl) {
+        if (isGlobal) {
+            listCounterEl.innerText = `${renderedCount} encontrado(s)`;
+        } else {
+            listCounterEl.innerText = `${renderedCount} (de ${totalCurrentSheet})`;
+        }
+    }
+
+    const totalCounterEl = document.getElementById('totalCounter') || document.getElementById('counterTotal');
+    if (totalCounterEl) {
+        totalCounterEl.innerText = totalAllSheets;
+    }
+}
+
+// Renderização principal da tabela
 window.renderTable = function() {
     const tbody = document.getElementById('tableBody'); 
     if (!tbody) return;
@@ -384,48 +427,71 @@ window.renderTable = function() {
 
     tbody.innerHTML = '';
 
-    if (!database[currentSheet]) {
-        updateCounters(0);
-        return;
-    }
+    let itemsToRender = [];
+    const isGlobalSearch = rawSearch !== ""; // Se digitou algo na busca, ativa busca global em TODAS as coleções
 
-    let itemsToRender = [...database[currentSheet]];
+    if (isGlobalSearch) {
+        // === BUSCA GLOBAL: Varre TODAS as coleções do banco ===
+        const terms = rawSearch.split(/\s+/); // Separa palavras por espaço (ex: "chico 1 abril")
 
-    if (selectedFilter !== "TODAS") {
-        itemsToRender = itemsToRender.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
-    }
+        Object.keys(database).forEach(sheetName => {
+            const sheetItems = database[sheetName];
+            if (Array.isArray(sheetItems)) {
+                sheetItems.forEach(item => {
+                    // Monta texto pesquisável incluindo o nome da coleção/personagem
+                    const itemContent = [
+                        sheetName,
+                        item.numero !== undefined && item.numero !== null ? item.numero.toString() : "",
+                        item.editora || "",
+                        item.categoria || "",
+                        item.serie || "",
+                        item.data || "",
+                        item.estado || ""
+                    ].join(" ").toLowerCase();
 
-    if (rawSearch !== "") {
-        const terms = rawSearch.split(/\s+/);
+                    // Verifica se TODOS os termos buscados estão presentes
+                    const matchesSearch = terms.every(term => itemContent.includes(term));
 
-        itemsToRender = itemsToRender.filter(item => {
-            const itemContent = [
-                currentSheet,
-                item.numero !== undefined && item.numero !== null ? item.numero.toString() : "",
-                item.editora || "",
-                item.categoria || "",
-                item.serie || "",
-                item.data || "",
-                item.estado || ""
-            ].join(" ").toLowerCase();
+                    // Aplica também o filtro por categoria se selecionado
+                    const matchesCategory = selectedFilter === "TODAS" || (item.categoria && item.categoria.trim() === selectedFilter);
 
-            return terms.every(term => itemContent.includes(term));
+                    if (matchesSearch && matchesCategory) {
+                        itemsToRender.push({ ...item, _originSheet: sheetName });
+                    }
+                });
+            }
         });
+    } else {
+        // === MODO NORMAL: Exibe apenas a coleção ativa no dropdown ===
+        if (!database[currentSheet]) {
+            updateCounters(0, false);
+            return;
+        }
+
+        let currentItems = [...database[currentSheet]];
+
+        if (selectedFilter !== "TODAS") {
+            currentItems = currentItems.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
+        }
+
+        itemsToRender = currentItems.map(item => ({ ...item, _originSheet: currentSheet }));
     }
 
-    // Ordena por número se não estiver no modo edição
+    // Ordena por número se não estiver editando
     if (editingIndex === null) {
         itemsToRender.sort((a, b) => a.numero - b.numero);
     }
 
+    // Renderiza cada linha na tabela
     itemsToRender.forEach((item) => {
-        const indexNoBanco = database[currentSheet].indexOf(item);
+        const originSheet = item._originSheet;
+        const indexNoBanco = database[originSheet].indexOf(item);
         const tr = document.createElement('tr');
 
-        if (editingIndex === indexNoBanco) {
+        if (editingIndex === indexNoBanco && currentSheet === originSheet) {
             tr.innerHTML = `
                 <td class="capa-cell"><input type="file" id="editCapa_${indexNoBanco}" accept="image/*" style="font-size:10px; width:70px;"></td>
-                <td><strong>${currentSheet}</strong></td>
+                <td><strong>${originSheet}</strong></td>
                 <td><input type="number" id="editNumero_${indexNoBanco}"></td>
                 <td><input type="text" id="editEditora_${indexNoBanco}"></td>
                 <td><input type="text" id="editCategoria_${indexNoBanco}"></td>
@@ -438,7 +504,6 @@ window.renderTable = function() {
                 </td>
             `;
 
-            // Preenche os inputs após a inserção no DOM
             setTimeout(() => {
                 const elNum = tr.querySelector(`#editNumero_${indexNoBanco}`);
                 const elEd = tr.querySelector(`#editEditora_${indexNoBanco}`);
@@ -475,7 +540,7 @@ window.renderTable = function() {
             }
 
             const tdPersonagem = document.createElement('td');
-            tdPersonagem.innerHTML = `<strong>${currentSheet}</strong>`;
+            tdPersonagem.innerHTML = `<strong>${originSheet}</strong>`;
 
             const tdNumero = document.createElement('td');
             tdNumero.className = 'numero-cell';
@@ -499,8 +564,8 @@ window.renderTable = function() {
             const tdActions = document.createElement('td');
             tdActions.className = 'actions-cell no-pdf';
             tdActions.innerHTML = `
-                <button class="btn-edit" onclick="startEdit(${indexNoBanco})">Editar</button>
-                <button class="btn-delete" onclick="deleteGibi(${indexNoBanco})">Excluir</button>
+                <button class="btn-edit" onclick="startEditInSheet('${originSheet}', ${indexNoBanco})">Editar</button>
+                <button class="btn-delete" onclick="deleteGibiInSheet('${originSheet}', ${indexNoBanco})">Excluir</button>
             `;
 
             tr.appendChild(tdCapa);
@@ -517,7 +582,7 @@ window.renderTable = function() {
         tbody.appendChild(tr);
     });
 
-    updateCounters(itemsToRender.length);
+    updateCounters(itemsToRender.length, isGlobalSearch);
 };
 
 // 10. Funções do Backup JSON (Completo para TODAS as listas)
