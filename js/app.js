@@ -10,16 +10,31 @@ import {
     setPersistence,
     browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
-    authDomain: "gibis-da-bibi.firebaseapp.com",
-    projectId: "gibis-da-bibi",
-    storageBucket: "gibis-da-bibi.firebasestorage.app",
-    messagingSenderId: "1069619452025",
-    appId: "1:1069619452025:web:82d0743ae68029df595ca8"
-};
+// Alternância automática de ambiente (Dev vs Prod)
+const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+const firebaseConfig = isLocal 
+    ? {
+        // PROJETO DE TESTES (DEV) - Suas chaves novas
+        apiKey: "AIzaSyArZvRam5pfYEIyrYeGFM5-VYGg0tpGJVE",
+        authDomain: "gibis-da-bibi-dev.firebaseapp.com",
+        projectId: "gibis-da-bibi-dev",
+        storageBucket: "gibis-da-bibi-dev.firebasestorage.app",
+        messagingSenderId: "491153993696",
+        appId: "1:491153993696:web:486bdf96d5a8c974f88585",
+        measurementId: "G-2TQPF15716"
+      }
+    : {
+        // PROJETO DE PRODUÇÃO (PROD) - As chaves oficiais da aplicação
+        apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
+        authDomain: "gibis-da-bibi.firebaseapp.com",
+        projectId: "gibis-da-bibi",
+        storageBucket: "gibis-da-bibi.firebasestorage.app",
+        messagingSenderId: "1069619452025",
+        appId: "1:1069619452025:web:82d0743ae68029df595ca8"
+      };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -31,11 +46,11 @@ setPersistence(auth, browserLocalPersistence).catch(console.error);
 let fundosPersonagens = { "default": "" };
 let database = {};
 let currentSheet = "";
-let editingIndex = null;
+let editingId = null; // Alterado de editingIndex para editingId para garantir unicidade e evitar conflitos cruzados
 let currentUser = null;
 
 /**
- * Converte e comprime imagens enviadas para Base64 (otimizado para o limite de 1MB do documento do Firestore)
+ * Converte e comprime imagens enviadas para Base64 (otimizado)
  */
 function imageToBase64(file, maxWidth = 220) {
     return new Promise((resolve, reject) => {
@@ -60,7 +75,6 @@ function imageToBase64(file, maxWidth = 220) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Converte em JPEG altamente comprimido (~10-15KB por capa) sem apagar as antigas
                 resolve(canvas.toDataURL('image/jpeg', 0.45));
             };
             img.onerror = (err) => reject(err);
@@ -127,37 +141,92 @@ window.logout = function() {
     signOut(auth);
 };
 
-// 4. Operações de Banco de Dados (Firestore)
-async function saveData() { 
+// ==========================================================================
+// 4. OPERAÇÕES DE BANCO DE DADOS (COM SUBDOCUMENTOS)
+// ==========================================================================
+
+async function saveUserMeta() {
     if (!currentUser) return;
     try {
         await setDoc(doc(db, "users", currentUser.uid), {
-            database: database,
             fundosPersonagens: fundosPersonagens
-        });
+        }, { merge: true });
     } catch (err) {
-        console.error("Erro ao salvar no Firebase:", err);
-        alert("Erro ao salvar alterações. O arquivo pode ter ultrapassado o limite máximo suportado.");
+        console.error("Erro ao salvar metadados:", err);
+    }
+}
+
+async function saveSheetToFirestore(sheetName) {
+    if (!currentUser) return;
+    try {
+        const safeId = encodeURIComponent(sheetName);
+        await setDoc(doc(db, "users", currentUser.uid, "colecoes", safeId), {
+            nome: sheetName,
+            itens: database[sheetName] || []
+        });
+        await saveUserMeta();
+    } catch (err) {
+        console.error(`Erro ao salvar coleção ${sheetName}:`, err);
+        alert("Erro ao salvar alterações no Firebase.");
+    }
+}
+
+async function deleteSheetFromFirestore(sheetName) {
+    if (!currentUser) return;
+    try {
+        const safeId = encodeURIComponent(sheetName);
+        await deleteDoc(doc(db, "users", currentUser.uid, "colecoes", safeId));
+    } catch (err) {
+        console.error(`Erro ao excluir coleção ${sheetName} do Firestore:`, err);
     }
 }
 
 async function loadUserData() {
     try {
-        const docRef = doc(db, "users", currentUser.uid);
-        const docSnap = await getDoc(docRef);
+        database = {};
+        fundosPersonagens = { "default": "" };
 
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            database = data.database || { "Chico Bento": [] };
-            fundosPersonagens = data.fundosPersonagens || { "default": "" };
-        } else {
-            database = { "Chico Bento": [] };
-            fundosPersonagens = { "default": "" };
-            await saveData();
+        // Carrega apenas os metadados (como os fundos dos personagens)
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            fundosPersonagens = userData.fundosPersonagens || { "default": "" };
         }
+
+        // Carrega as coleções diretamente da subcoleção de forma limpa e segura
+        const colecoesRef = collection(db, "users", currentUser.uid, "colecoes");
+        const querySnapshot = await getDocs(colecoesRef);
+
+        if (!querySnapshot.empty) {
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.nome && Array.isArray(data.itens)) {
+                    data.itens.forEach(gibi => {
+                        if (!gibi.id) {
+                            gibi.id = '_' + Math.random().toString(36).substr(2, 9);
+                        }
+                    });
+                    database[data.nome] = data.itens;
+                }
+            });
+        }
+
+        if (Object.keys(database).length === 0) {
+            database["Chico Bento"] = [];
+            await saveSheetToFirestore("Chico Bento");
+        }
+
     } catch (err) {
         console.error("Erro ao carregar dados:", err);
         database = { "Chico Bento": [] };
+    }
+}
+
+async function saveData(sheetName = currentSheet) {
+    if (sheetName) {
+        await saveSheetToFirestore(sheetName);
     }
 }
 
@@ -167,11 +236,11 @@ function init() {
     if (sheets.length === 0) {
         database["Minha Coleção"] = [];
         currentSheet = "Minha Coleção";
-        saveData();
+        saveData(currentSheet);
     } else if (!database[currentSheet]) {
         currentSheet = sheets[0];
     }
-    editingIndex = null;
+    editingId = null;
     updateSheetDropdown(); 
     updateCategoryFilterOptions();
     renderTable(); 
@@ -221,22 +290,6 @@ function updateCategoryFilterOptions() {
     filterSelect.value = categorias.includes(selectedValue) ? selectedValue : "TODAS";
 }
 
-// Função para atualizar os contadores na tela
-function updateCounters(renderedCount = 0) {
-    const totalCurrentSheet = database[currentSheet] ? database[currentSheet].length : 0;
-    const totalAllSheets = Object.values(database).reduce((acc, sheet) => acc + (Array.isArray(sheet) ? sheet.length : 0), 0);
-
-    const counterSheetEl = document.getElementById('counterCurrentSheet');
-    if (counterSheetEl) {
-        counterSheetEl.innerText = `Gibis nesta coleção: ${renderedCount} (de ${totalCurrentSheet})`;
-    }
-
-    const counterTotalEl = document.getElementById('counterTotal');
-    if (counterTotalEl) {
-        counterTotalEl.innerText = `Total Geral de Gibis: ${totalAllSheets}`;
-    }
-}
-
 // 6. Manipulação de Listas/Coleções
 window.createNewSheet = async function() {
     const name = prompt("Nome do Personagem/Lista:");
@@ -245,7 +298,7 @@ window.createNewSheet = async function() {
         if (!database[cleanName]) {
             database[cleanName] = []; 
             currentSheet = cleanName;
-            await saveData(); 
+            await saveData(cleanName); 
             init();
         } else { 
             alert("Esta lista já existe!"); 
@@ -255,9 +308,12 @@ window.createNewSheet = async function() {
 
 window.deleteCurrentSheet = async function() {
     if (confirm(`Tem certeza que deseja excluir a lista "${currentSheet}"?`)) {
-        delete database[currentSheet];
-        delete fundosPersonagens[currentSheet];
-        await saveData();
+        const sheetToDelete = currentSheet;
+        delete database[sheetToDelete];
+        delete fundosPersonagens[sheetToDelete];
+        
+        await deleteSheetFromFirestore(sheetToDelete);
+        await saveUserMeta();
 
         const remaining = Object.keys(database);
         currentSheet = remaining.length > 0 ? remaining[0] : "";
@@ -274,11 +330,18 @@ window.changeSheet = function() {
     init(); 
 };
 
-// 7. Manipulação dos Items (Gibis)
+// 7. Manipulação dos Items (Gibis) - COM TRAVA E SPINNER DE CARREGAMENTO
 window.addGibi = async function(event) {
     event.preventDefault();
-    const submitBtn = event.target.querySelector('button[type="submit"]');
-    if (submitBtn) submitBtn.disabled = true;
+    
+    const submitBtn = event.target.querySelector('button[type="submit"]') || event.target.querySelector('.btn-add');
+    if (submitBtn && submitBtn.disabled) return;
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+        submitBtn.innerHTML = `<span class="spinner"></span> Adicionando...`;
+    }
 
     try {
         const fileInput = document.getElementById('capaInput');
@@ -293,6 +356,7 @@ window.addGibi = async function(event) {
         }
 
         database[currentSheet].push({
+            id: '_' + Math.random().toString(36).substr(2, 9), 
             capa: capaURL,
             editora: document.getElementById('editora').value.trim(),
             categoria: document.getElementById('categoria').value.trim(),
@@ -302,7 +366,7 @@ window.addGibi = async function(event) {
             estado: document.getElementById('estado').value.trim()
         });
 
-        await saveData();
+        await saveData(currentSheet);
         updateCategoryFilterOptions();
         renderTable(); 
         document.getElementById('addGibiForm').reset();
@@ -310,50 +374,63 @@ window.addGibi = async function(event) {
         console.error("Erro ao adicionar gibi:", err);
         alert("Erro ao adicionar o gibi. Verifique o console.");
     } finally {
-        if (submitBtn) submitBtn.disabled = false;
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = submitBtn.dataset.originalHtml || 'Adicionar';
+        }
     }
 };
 
 window.deleteGibi = async function(index) {
     if (confirm("Remover este gibi?")) { 
         database[currentSheet].splice(index, 1); 
-        if (editingIndex === index) editingIndex = null;
-        await saveData(); 
+        editingId = null;
+        await saveData(currentSheet); 
         updateCategoryFilterOptions();
         renderTable(); 
     }
 };
 
-window.startEdit = function(index) { 
-    editingIndex = index; 
-    renderTable(); 
-};
-
 window.cancelEdit = function() { 
-    editingIndex = null; 
+    editingId = null; 
     renderTable(); 
 };
 
-window.saveEdit = async function(index) {
-    const fileInput = document.getElementById(`editCapa_${index}`);
-    let capaURL = database[currentSheet][index].capa;
+window.saveEdit = async function(sheetName, gibiId) {
+    const targetSheet = sheetName || currentSheet;
+    
+    // Busca EXATA pelo ID do gibi, evitando qualquer problema de índice cruzado
+    const itemIndex = database[targetSheet].findIndex(item => item.id === gibiId);
 
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-        capaURL = await imageToBase64(fileInput.files[0]);
+    if (itemIndex === -1) {
+        alert("Erro: Gibi não encontrado para edição.");
+        return;
     }
 
-    database[currentSheet][index] = {
+    const fileInput = document.getElementById(`editCapa_${gibiId}`);
+    let capaURL = database[targetSheet][itemIndex].capa || "";
+
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        try {
+            capaURL = await imageToBase64(fileInput.files[0]);
+        } catch (err) {
+            console.error("Erro ao converter nova capa na edição:", err);
+        }
+    }
+
+    database[targetSheet][itemIndex] = {
+        id: gibiId, 
         capa: capaURL,
-        numero: parseInt(document.getElementById(`editNumero_${index}`).value) || 0,
-        editora: document.getElementById(`editEditora_${index}`).value.trim(),
-        categoria: document.getElementById(`editCategoria_${index}`).value.trim(),
-        serie: document.getElementById(`editSerie_${index}`).value.trim(),
-        data: document.getElementById(`editData_${index}`).value.trim(),
-        estado: document.getElementById(`editEstado_${index}`).value.trim()
+        numero: parseInt(document.getElementById(`editNumero_${gibiId}`).value) || 0,
+        editora: document.getElementById(`editEditora_${gibiId}`).value.trim(),
+        categoria: document.getElementById(`editCategoria_${gibiId}`).value.trim(),
+        serie: document.getElementById(`editSerie_${gibiId}`).value.trim(),
+        data: document.getElementById(`editData_${gibiId}`).value.trim(),
+        estado: document.getElementById(`editEstado_${gibiId}`).value.trim()
     };
 
-    editingIndex = null;
-    await saveData();
+    editingId = null;
+    await saveData(targetSheet);
     updateCategoryFilterOptions();
     renderTable();
 };
@@ -377,27 +454,25 @@ window.closeImageModal = function() {
 // 9. RENDERIZAÇÃO DA TABELA (Com Busca Global e Palavras Compostas)
 // ==========================================================================
 
-// Funções auxiliares para ações de edição/exclusão vindas da busca global
-window.startEditInSheet = function(sheetName, index) {
+window.startEditInSheet = function(sheetName, gibiId) {
     currentSheet = sheetName;
     const select = document.getElementById('sheetSelect');
     if (select) select.value = sheetName;
-    editingIndex = index;
+    editingId = gibiId;
     renderTable();
 };
 
 window.deleteGibiInSheet = async function(sheetName, index) {
     if (confirm(`Remover este gibi da coleção "${sheetName}"?`)) { 
         database[sheetName].splice(index, 1); 
-        if (editingIndex === index) editingIndex = null;
-        await saveData(); 
+        editingId = null;
+        await saveData(sheetName); 
         updateCategoryFilterOptions();
         renderTable(); 
     }
 };
 
-// Sobrescreve/Atualiza a função de contadores para suportar a busca global
-updateCounters = function(renderedCount = 0, isGlobal = false) {
+function updateCounters(renderedCount = 0, isGlobal = false) {
     const totalCurrentSheet = database[currentSheet] ? database[currentSheet].length : 0;
     const totalAllSheets = Object.values(database).reduce((acc, sheet) => acc + (Array.isArray(sheet) ? sheet.length : 0), 0);
 
@@ -414,32 +489,32 @@ updateCounters = function(renderedCount = 0, isGlobal = false) {
     if (totalCounterEl) {
         totalCounterEl.innerText = totalAllSheets;
     }
-};
+}
 
-// Renderização principal da tabela
 window.renderTable = function() {
     const tbody = document.getElementById('tableBody'); 
     if (!tbody) return;
 
     const selectedFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
     const searchInput = document.getElementById('searchInput');
-    const rawSearch = searchInput ? searchInput.value.toLowerCase().trim() : "";
+    const rawSearch = searchInput ? searchInput.value.trim() : "";
 
     tbody.innerHTML = '';
 
     let itemsToRender = [];
-    const isGlobalSearch = rawSearch !== ""; // Se digitou algo na busca, ativa busca global em TODAS as coleções
+    const isGlobalSearch = rawSearch !== "";
+
+    // Função auxiliar para remover acentos e converter para minúsculas
+    const normalizeStr = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
     if (isGlobalSearch) {
-        // === BUSCA GLOBAL: Varre TODAS as coleções do banco ===
-        const terms = rawSearch.split(/\s+/); // Separa palavras por espaço (ex: "chico 1 abril")
+        const terms = rawSearch.split(/\s+/).filter(Boolean).map(normalizeStr);
 
         Object.keys(database).forEach(sheetName => {
             const sheetItems = database[sheetName];
             if (Array.isArray(sheetItems)) {
                 sheetItems.forEach(item => {
-                    // Monta texto pesquisável incluindo o nome da coleção/personagem
-                    const itemContent = [
+                    const rawContent = [
                         sheetName,
                         item.numero !== undefined && item.numero !== null ? item.numero.toString() : "",
                         item.editora || "",
@@ -447,12 +522,12 @@ window.renderTable = function() {
                         item.serie || "",
                         item.data || "",
                         item.estado || ""
-                    ].join(" ").toLowerCase();
+                    ].join(" ");
 
-                    // Verifica se TODOS os termos buscados estão presentes
+                    const itemContent = normalizeStr(rawContent);
+
+                    // .every garante que todos os termos digitados precisem estar presentes (ex: "monica 56")
                     const matchesSearch = terms.every(term => itemContent.includes(term));
-
-                    // Aplica também o filtro por categoria se selecionado
                     const matchesCategory = selectedFilter === "TODAS" || (item.categoria && item.categoria.trim() === selectedFilter);
 
                     if (matchesSearch && matchesCategory) {
@@ -462,7 +537,6 @@ window.renderTable = function() {
             }
         });
     } else {
-        // === MODO NORMAL: Exibe apenas a coleção ativa no dropdown ===
         if (!database[currentSheet]) {
             updateCounters(0, false);
             return;
@@ -474,43 +548,43 @@ window.renderTable = function() {
             currentItems = currentItems.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
         }
 
+        currentItems.sort((a, b) => a.numero - b.numero);
+
         itemsToRender = currentItems.map(item => ({ ...item, _originSheet: currentSheet }));
     }
 
-    // Ordena por número se não estiver editando
-    if (editingIndex === null) {
-        itemsToRender.sort((a, b) => a.numero - b.numero);
-    }
-
-    // Renderiza cada linha na tabela
     itemsToRender.forEach((item) => {
         const originSheet = item._originSheet;
-        const indexNoBanco = database[originSheet].indexOf(item);
+        const indexNoBanco = database[originSheet].findIndex(dbItem => dbItem.id === item.id);
         const tr = document.createElement('tr');
 
-        if (editingIndex === indexNoBanco && currentSheet === originSheet) {
+        if (!item.id) {
+            item.id = '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        if (editingId === item.id && currentSheet === originSheet) {
             tr.innerHTML = `
-                <td class="capa-cell"><input type="file" id="editCapa_${indexNoBanco}" accept="image/*" style="font-size:10px; width:70px;"></td>
+                <td class="capa-cell"><input type="file" id="editCapa_${item.id}" accept="image/*" style="font-size:10px; width:70px;"></td>
                 <td><strong>${originSheet}</strong></td>
-                <td><input type="number" id="editNumero_${indexNoBanco}"></td>
-                <td><input type="text" id="editEditora_${indexNoBanco}"></td>
-                <td><input type="text" id="editCategoria_${indexNoBanco}"></td>
-                <td><input type="text" id="editSerie_${indexNoBanco}"></td>
-                <td><input type="text" id="editData_${indexNoBanco}"></td>
-                <td><input type="text" id="editEstado_${indexNoBanco}"></td>
+                <td><input type="number" id="editNumero_${item.id}"></td>
+                <td><input type="text" id="editEditora_${item.id}"></td>
+                <td><input type="text" id="editCategoria_${item.id}"></td>
+                <td><input type="text" id="editSerie_${item.id}"></td>
+                <td><input type="text" id="editData_${item.id}"></td>
+                <td><input type="text" id="editEstado_${item.id}"></td>
                 <td class="actions-cell no-pdf">
-                    <button class="btn-save" onclick="saveEdit(${indexNoBanco})">Salvar</button>
+                    <button class="btn-save" onclick="saveEdit('${originSheet}', '${item.id}')">Salvar</button>
                     <button class="btn-cancel" onclick="cancelEdit()">X</button>
                 </td>
             `;
 
             setTimeout(() => {
-                const elNum = tr.querySelector(`#editNumero_${indexNoBanco}`);
-                const elEd = tr.querySelector(`#editEditora_${indexNoBanco}`);
-                const elCat = tr.querySelector(`#editCategoria_${indexNoBanco}`);
-                const elSer = tr.querySelector(`#editSerie_${indexNoBanco}`);
-                const elData = tr.querySelector(`#editData_${indexNoBanco}`);
-                const elEst = tr.querySelector(`#editEstado_${indexNoBanco}`);
+                const elNum = tr.querySelector(`#editNumero_${item.id}`);
+                const elEd = tr.querySelector(`#editEditora_${item.id}`);
+                const elCat = tr.querySelector(`#editCategoria_${item.id}`);
+                const elSer = tr.querySelector(`#editSerie_${item.id}`);
+                const elData = tr.querySelector(`#editData_${item.id}`);
+                const elEst = tr.querySelector(`#editEstado_${item.id}`);
 
                 if (elNum) elNum.value = item.numero;
                 if (elEd) elEd.value = item.editora || '';
@@ -564,7 +638,7 @@ window.renderTable = function() {
             const tdActions = document.createElement('td');
             tdActions.className = 'actions-cell no-pdf';
             tdActions.innerHTML = `
-                <button class="btn-edit" onclick="startEditInSheet('${originSheet}', ${indexNoBanco})">Editar</button>
+                <button class="btn-edit" onclick="startEditInSheet('${originSheet}', '${item.id}')">Editar</button>
                 <button class="btn-delete" onclick="deleteGibiInSheet('${originSheet}', ${indexNoBanco})">Excluir</button>
             `;
 
@@ -585,14 +659,13 @@ window.renderTable = function() {
     updateCounters(itemsToRender.length, isGlobalSearch);
 };
 
-// 10. Funções do Backup JSON (Completo para TODAS as listas)
+// 10. Funções do Backup JSON
 window.exportarBackup = function() {
     if (!database || Object.keys(database).length === 0) {
         alert("Não há dados para exportar.");
         return;
     }
 
-    // Exporta o objeto completo 'database' contendo todas as listas/coleções
     const backupData = JSON.stringify({ database, fundosPersonagens }, null, 2);
     const blob = new Blob([backupData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -621,10 +694,11 @@ window.importarBackup = function(event) {
                     fundosPersonagens = data.fundosPersonagens;
                 }
                 
-                // Salva o banco restaurado no Firestore
-                await saveData();
+                for (const sheetName of Object.keys(database)) {
+                    await saveData(sheetName);
+                }
+                await saveUserMeta();
 
-                // Define a lista visível para a primeira existente no novo banco
                 const sheets = Object.keys(database);
                 currentSheet = sheets.length > 0 ? sheets[0] : "";
 
@@ -641,7 +715,7 @@ window.importarBackup = function(event) {
     reader.readAsText(file);
 };
 
-// 11. Exportação para PDF (Gera o PDF da lista atual)
+// 11. Exportação para PDF
 window.exportToPDF = function() {
     const element = document.getElementById('pdfContent');
     const actionCols = document.querySelectorAll('.no-pdf');
@@ -665,3 +739,27 @@ window.exportToPDF = function() {
         actionCols.forEach(el => el.style.display = '');
     }
 };
+
+// Função única para alternar o tema (cicla entre: Automático -> Escuro -> Claro -> Automático)
+window.toggleDarkMode = function() {
+    const root = document.documentElement;
+    
+    // Alterna diretamente entre 'dark-mode' e 'light-mode'
+    if (root.classList.contains('dark-mode')) {
+        root.classList.remove('dark-mode');
+        root.classList.add('light-mode');
+        localStorage.setItem('theme', 'light');
+    } else {
+        root.classList.remove('light-mode');
+        root.classList.add('dark-mode');
+        localStorage.setItem('theme', 'dark');
+    }
+};
+
+// Executa ao carregar a página para manter a preferência salva
+window.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        document.documentElement.classList.add(savedTheme + '-mode');
+    }
+});
