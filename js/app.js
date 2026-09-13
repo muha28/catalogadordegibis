@@ -37,7 +37,7 @@ let currentUser = null;
 /**
  * Converte e comprime imagens enviadas para Base64 (otimizado para o limite de 1MB do documento do Firestore)
  */
-function imageToBase64(file, maxWidth = 300) {
+function imageToBase64(file, maxWidth = 220) {
     return new Promise((resolve, reject) => {
         if (!file) return resolve("");
         const reader = new FileReader();
@@ -60,8 +60,8 @@ function imageToBase64(file, maxWidth = 300) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Converte em JPEG comprimido (~20-40KB por capa)
-                resolve(canvas.toDataURL('image/jpeg', 0.65));
+                // Converte em JPEG altamente comprimido (~10-15KB por capa) sem apagar as antigas
+                resolve(canvas.toDataURL('image/jpeg', 0.45));
             };
             img.onerror = (err) => reject(err);
         };
