@@ -481,13 +481,15 @@ function updateCounters(renderedCount = 0, isGlobal = false) {
         if (isGlobal) {
             listCounterEl.innerText = `${renderedCount} encontrado(s)`;
         } else {
-            listCounterEl.innerText = `${renderedCount} (de ${totalCurrentSheet})`;
+            // Mantém a fraseologia correta unindo o texto descritivo ao valor calculado
+            listCounterEl.innerText = `Gibis nesta coleção: ${renderedCount} (de ${totalCurrentSheet})`;
         }
     }
 
     const totalCounterEl = document.getElementById('totalCounter') || document.getElementById('counterTotal');
     if (totalCounterEl) {
-        totalCounterEl.innerText = totalAllSheets;
+        // Mantém a fraseologia correta para o total geral
+        totalCounterEl.innerText = `Total Geral de Gibis: ${totalAllSheets}`;
     }
 }
 
