@@ -396,8 +396,8 @@ window.deleteGibiInSheet = async function(sheetName, index) {
     }
 };
 
-// Função para atualizar os contadores na tela de forma inteligente
-function updateCounters(renderedCount = 0, isGlobal = false) {
+// Sobrescreve/Atualiza a função de contadores para suportar a busca global
+updateCounters = function(renderedCount = 0, isGlobal = false) {
     const totalCurrentSheet = database[currentSheet] ? database[currentSheet].length : 0;
     const totalAllSheets = Object.values(database).reduce((acc, sheet) => acc + (Array.isArray(sheet) ? sheet.length : 0), 0);
 
@@ -414,7 +414,7 @@ function updateCounters(renderedCount = 0, isGlobal = false) {
     if (totalCounterEl) {
         totalCounterEl.innerText = totalAllSheets;
     }
-}
+};
 
 // Renderização principal da tabela
 window.renderTable = function() {
