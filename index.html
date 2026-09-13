@@ -26,7 +26,10 @@
         <!-- Cabeçalho / Barra do Usuário -->
         <header class="user-header no-pdf">
             <span id="userStatus">Usuário: Carregando...</span>
-            <button type="button" class="btn-logout" onclick="window.logout()">Sair</button>
+            <div class="user-header-actions">
+                <button id="themeToggleBtn" class="btn-theme-toggle" onclick="toggleDarkMode()">🌓 Tema</button>
+                <button type="button" class="btn-logout" onclick="window.logout()">Sair</button>
+            </div>
         </header>
 
         <!-- Título do Aplicativo -->

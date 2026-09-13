@@ -1,5 +1,85 @@
 /* ==========================================================================
-   1. RESETS E ESTILOS GERAIS
+   1. VARIÁVEIS DE CORES (TEMA CLARO E ESCURO)
+   ========================================================================== */
+:root {
+    --bg-body: #f4f6f9;
+    --bg-container: #ffffff;
+    --text-color: #333333;
+    --text-muted: #475569;
+    --bg-header: #f8f9fa;
+    --border-color: #e2e8f0;
+    --border-input: #cbd5e1;
+    --table-header-bg: #f1f5f9;
+    --table-header-color: #475569;
+    --table-row-bg: #ffffff;
+    --form-bg: #f8fafc;
+    --placeholder-bg: #e2e8f0;
+    --placeholder-color: #94a3b8;
+    --dropdown-bg: #ffffff;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Modo Escuro Automático baseado na preferência do sistema operacional */
+@media (prefers-color-scheme: dark) {
+    :root:not(.light-mode) {
+        --bg-body: #0f172a;
+        --bg-container: #1e293b;
+        --text-color: #f8fafc;
+        --text-muted: #94a3b8;
+        --bg-header: #1e293b;
+        --border-color: #334155;
+        --border-input: #475569;
+        --table-header-bg: #0f172a;
+        --table-header-color: #cbd5e1;
+        --table-row-bg: #1e293b;
+        --form-bg: #0f172a;
+        --placeholder-bg: #334155;
+        --placeholder-color: #64748b;
+        --dropdown-bg: #1e293b;
+        --shadow-color: rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* Sobrescrita manual caso adicione classes via JS */
+:root.dark-mode {
+    --bg-body: #0f172a;
+    --bg-container: #1e293b;
+    --text-color: #f8fafc;
+    --text-muted: #94a3b8;
+    --bg-header: #1e293b;
+    --border-color: #334155;
+    --border-input: #475569;
+    --table-header-bg: #0f172a;
+    --table-header-color: #cbd5e1;
+    --table-row-bg: #1e293b;
+    --form-bg: #0f172a;
+    --placeholder-bg: #334155;
+    --placeholder-color: #64748b;
+    --dropdown-bg: #1e293b;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+:root.light-mode {
+    --bg-body: #f4f6f9;
+    --bg-container: #ffffff;
+    --text-color: #333333;
+    --text-muted: #475569;
+    --bg-header: #f8f9fa;
+    --border-color: #e2e8f0;
+    --border-input: #cbd5e1;
+    --table-header-bg: #f1f5f9;
+    --table-header-color: #475569;
+    --table-row-bg: #ffffff;
+    --form-bg: #f8fafc;
+    --placeholder-bg: #e2e8f0;
+    --placeholder-color: #94a3b8;
+    --dropdown-bg: #ffffff;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+
+/* ==========================================================================
+   2. RESETS E ESTILOS GERAIS
    ========================================================================== */
 * {
     box-sizing: border-box;
@@ -9,7 +89,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f6f9;
+    background-color: var(--bg-body);
     
     /* Imagem de fundo ocupando toda a tela */
     background-image: url('../assets/bg-login.png');
@@ -18,7 +98,7 @@ body {
     background-repeat: no-repeat;
     background-attachment: fixed;
     
-    color: #333;
+    color: var(--text-color);
     padding: 20px;
     min-height: 100vh;
 }
@@ -26,38 +106,39 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    background: #ffffff;
+    background: var(--bg-container);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 /* ==========================================================================
-   2. TELA DE LOGIN (Card Centralizado sobre a Imagem)
+   3. TELA DE LOGIN (Card Centralizado sobre a Imagem)
    ========================================================================== */
 #loginScreen {
     max-width: 450px;
     margin: 80px auto 0 auto;
     
-    /* Fundo branco levemente translúcido */
-    background-color: rgba(255, 255, 255, 0.94);
+    /* Fundo levemente translúcido adaptável */
+    background-color: var(--bg-container);
+    opacity: 0.96;
     backdrop-filter: blur(5px);
     
     padding: 40px 30px;
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid var(--border-color);
     text-align: center;
 }
 
 #loginScreen h1 {
     font-size: 1.6rem;
-    color: #1e293b;
+    color: var(--text-color);
     margin-bottom: 12px;
 }
 
 #loginScreen p {
-    color: #475569;
+    color: var(--text-muted);
     font-size: 0.95rem;
     margin-bottom: 25px;
     line-height: 1.5;
@@ -76,23 +157,29 @@ body {
 }
 
 /* ==========================================================================
-   3. CABEÇALHO E MENSAGENS
+   4. CABEÇALHO E MENSAGENS
    ========================================================================== */
 .user-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #f8f9fa;
+    background-color: var(--bg-header);
     padding: 10px 15px;
     border-radius: 6px;
     margin-bottom: 20px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border-color);
+}
+
+.user-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espaço entre o botão de Tema e o Sair */
 }
 
 .app-title h1 {
     text-align: center;
     font-size: 1.8rem;
-    color: #2c3e50;
+    color: var(--text-color);
     margin-bottom: 20px;
 }
 
@@ -100,7 +187,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid var(--border-color);
     padding-bottom: 8px;
     margin-bottom: 15px;
     flex-wrap: wrap;
@@ -108,7 +195,7 @@ body {
 }
 
 .collection-header h2 {
-    color: #2c3e50;
+    color: var(--text-color);
     font-size: 1.3rem;
     margin-bottom: 0;
     padding-bottom: 0;
@@ -124,24 +211,24 @@ body {
 
 /* Compatibilizado com os IDs gerados pelo JS */
 .counter-badge, #counterCurrentSheet, #counterTotal {
-    background-color: #f1f5f9;
-    color: #475569;
+    background-color: var(--bg-header);
+    color: var(--text-muted);
     padding: 6px 12px;
     border-radius: 20px;
     font-size: 0.85rem;
     font-weight: 600;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-input);
     display: inline-block;
 }
 
 .counter-badge strong, #counterCurrentSheet strong, #counterTotal strong {
-    color: #2563eb;
+    color: #3b82f6;
     font-size: 0.95rem;
     margin-left: 2px;
 }
 
 /* ==========================================================================
-   4. BARRA DE CONTROLES E BOTÕES
+   5. BARRA DE CONTROLES E BOTÕES
    ========================================================================== */
 .controls {
     display: flex;
@@ -161,11 +248,12 @@ body {
 
 select, input[type="text"], input[type="number"], input[type="file"] {
     padding: 8px 12px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-input);
     border-radius: 6px;
     font-size: 0.9rem;
     outline: none;
-    background-color: #ffffff;
+    background-color: var(--bg-container);
+    color: var(--text-color);
 }
 
 select:focus, input:focus {
@@ -216,9 +304,9 @@ button {
 }
 
 .btn-settings {
-    background-color: #f1f5f9;
-    color: #334155;
-    border: 1px solid #cbd5e1;
+    background-color: var(--bg-header);
+    color: var(--text-color);
+    border: 1px solid var(--border-input);
 }
 
 /* Submenu Dropdown */
@@ -232,13 +320,13 @@ button {
     position: absolute;
     right: 0;
     top: 110%;
-    background-color: white;
+    background-color: var(--dropdown-bg);
     min-width: 180px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px var(--shadow-color);
     border-radius: 6px;
     z-index: 100;
     overflow: hidden;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
 }
 
 .dropdown-content.show {
@@ -249,7 +337,7 @@ button {
     width: 100%;
     text-align: left;
     background: none;
-    color: #334155;
+    color: var(--text-color);
     padding: 10px 15px;
     border-radius: 0;
     font-weight: normal;
@@ -257,17 +345,17 @@ button {
 }
 
 .btn-menu-item:hover {
-    background-color: #f8fafc;
+    background-color: var(--bg-header);
 }
 
 /* ==========================================================================
-   5. FORMULÁRIO DE ADIÇÃO
+   6. FORMULÁRIO DE ADIÇÃO
    ========================================================================== */
 .gibi-form {
-    background-color: #f8fafc;
+    background-color: var(--form-bg);
     padding: 15px;
     border-radius: 8px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
     margin-bottom: 25px;
 }
 
@@ -287,7 +375,7 @@ button {
 }
 
 /* ==========================================================================
-   6. BARRA DE FILTROS E BUSCA
+   7. BARRA DE FILTROS E BUSCA
    ========================================================================== */
 .filter-bar {
     display: flex;
@@ -303,7 +391,7 @@ button {
 }
 
 /* ==========================================================================
-   7. TABELA E CAPAS DOS GIBIS
+   8. TABELA E CAPAS DOS GIBIS
    ========================================================================== */
 .table-responsive {
     overflow-x: auto;
@@ -313,20 +401,21 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
-    background-color: white;
+    background-color: var(--table-row-bg);
 }
 
 th, td {
     padding: 10px 12px;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
     font-size: 0.9rem;
+    color: var(--text-color);
 }
 
 th {
-    background-color: #f1f5f9;
-    color: #475569;
+    background-color: var(--table-header-bg);
+    color: var(--table-header-color);
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -357,8 +446,8 @@ th {
 .capa-placeholder {
     width: 55px;
     height: 75px;
-    background-color: #e2e8f0;
-    color: #94a3b8;
+    background-color: var(--placeholder-bg);
+    color: var(--placeholder-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -370,7 +459,7 @@ th {
 
 .numero-cell {
     font-weight: bold;
-    color: #1e293b;
+    color: var(--text-color);
 }
 
 .actions-cell {
@@ -389,12 +478,14 @@ td input[type="text"], td input[type="number"] {
     width: 100%;
     padding: 6px 8px;
     font-size: 0.85rem;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-input);
     border-radius: 4px;
+    background-color: var(--bg-container);
+    color: var(--text-color);
 }
 
 /* ==========================================================================
-   8. MODAL DE VISUALIZAÇÃO DA CAPA (Necessário para openImageModal)
+   9. MODAL DE VISUALIZAÇÃO DA CAPA
    ========================================================================== */
 .modal {
     display: none;
@@ -433,8 +524,24 @@ td input[type="text"], td input[type="number"] {
     color: #ef4444;
 }
 
+.btn-theme-toggle {
+    background-color: var(--bg-header);
+    color: var(--text-color);
+    border: 1px solid var(--border-input);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-theme-toggle:hover {
+    background-color: var(--border-input);
+}
+
 /* ==========================================================================
-   9. IMPRESSÃO E PDF
+   10. IMPRESSÃO E PDF
    ========================================================================== */
 @media print {
     .no-pdf {
@@ -449,4 +556,30 @@ td input[type="text"], td input[type="number"] {
         max-width: 100%;
         padding: 0;
     }
+}
+
+/* ==========================================================================
+   11. ANIMAÇÃO DE CARREGAMENTO (SPINNER) E BOTÃO PROCESSANDO
+   ========================================================================== */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none !important;
 }
