@@ -92,7 +92,8 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--bg-body);
-    background-image: url('../assets/bg-login.png');
+    /* Fundo padrão para Mobile / PWA */
+    background-image: url('../assets/bckgrnd-mobile.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -100,6 +101,13 @@ body {
     color: var(--text-color);
     padding: 20px;
     min-height: 100vh;
+}
+
+/* Fundo exclusivo para Desktop (telas a partir de 768px) */
+@media (min-width: 768px) {
+    body {
+        background-image: url('../assets/bckgrnd-desktop.png');
+    }
 }
 
 .container {
