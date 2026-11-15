@@ -2,12 +2,18 @@
   "name": "Minha Gibiteca 📚",
   "short_name": "Gibiteca",
   "description": "Catalogador e gerenciador de coleção de gibis na nuvem",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0d1b2a",
   "theme_color": "#1b263b",
   "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "assets/app-icon.png",
       "sizes": "512x512",

@@ -1,12 +1,15 @@
-// sw.js - Service Worker atualizado para v8
-const CACHE_NAME = 'gibis-app-v8';
+// sw.js - Service Worker atualizado para v9 (Minha Gibiteca)
+const CACHE_NAME = 'gibis-app-v9';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './css/style.css',
   './js/app.js',
   './manifest.json',
-  './assets/bg-login.png'
+  './assets/bckgrnd-mobile.png',
+  './assets/bckgrnd-desktop.png',
+  './assets/favicon.png',
+  './assets/app-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
