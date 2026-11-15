@@ -13,7 +13,7 @@
 </head>
 <body>
 
-    <!-- Tela de Login (Exibida caso o usuário não esteja autenticado) -->
+    <!-- Tela de Login -->
     <div id="loginScreen" style="display: none; text-align: center; margin-top: 50px;">
         <h1>📚 MEU CATALOGADOR DE GIBIS</h1>
         <p>Faça login com sua conta do Google para acessar suas coleções:</p>
@@ -37,14 +37,14 @@
             <h1>📚 MEU CATALOGADOR DE GIBIS</h1>
         </div>
 
-        <!-- Barra de Controles (Ações da Lista e Submenu de Opções) -->
+        <!-- Barra de Controles -->
         <div class="controls no-pdf">
             <div class="main-controls">
-                <label for="sheetSelect"><strong>Personagem:</strong></label>
+                <label for="sheetSelect"><strong>Coleção:</strong></label>
                 <select id="sheetSelect" onchange="window.changeSheet()"></select>
 
                 <button type="button" class="btn-action" onclick="window.createNewSheet()">+ Nova Lista</button>
-                <button type="button" class="btn-delete-sheet" onclick="window.deleteCurrentSheet()">Excluir Lista</button>
+                <button type="button" class="btn-delete-sheet" id="btnDeleteSheet" onclick="window.deleteCurrentSheet()">Excluir Lista</button>
             </div>
 
             <!-- Submenu de Opções -->
@@ -67,6 +67,9 @@
         <!-- Formulário para Adicionar Novo Gibi -->
         <form id="addGibiForm" class="gibi-form no-pdf" onsubmit="window.addGibi(event)">
             <div class="form-grid">
+                <select id="targetSheetSelect" style="display: none;" title="Escolha em qual personagem salvar">
+                    <!-- Preenchido via JS quando estiver na visão "Todos os Personagens" -->
+                </select>
                 <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
                 <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)">
                 <input type="text" id="serie" placeholder="Série/Fase (ex: 1ª Série)">
@@ -79,10 +82,16 @@
                 <label for="capaInput" class="file-label">Imagem da Capa (Opcional):</label>
                 <input type="file" id="capaInput" accept="image/*">
 
-                <label class="read-checkbox-label">
-                    <input type="checkbox" id="lidoInput">
-                    <span>Já li este gibi</span>
-                </label>
+                <div class="form-checks-group">
+                    <label class="read-checkbox-label">
+                        <input type="checkbox" id="lidoInput">
+                        <span>Já li</span>
+                    </label>
+                    <label class="read-checkbox-label fav-checkbox-label">
+                        <input type="checkbox" id="favoritoInput">
+                        <span>⭐ Favorito</span>
+                    </label>
+                </div>
             </div>
 
             <button type="submit" class="btn-add">+ Adicionar À Lista</button>
@@ -99,7 +108,10 @@
                             Gibis nesta coleção: 0
                         </span>
                         <span id="counterReadSheet" class="counter-badge">
-                            Lidos: 0 (0%)
+                            Lidos: 0/0 (0%)
+                        </span>
+                        <span id="counterFavSheet" class="counter-badge">
+                            ⭐ Favoritos: 0
                         </span>
                         <span id="counterTotal" class="counter-badge">
                             Total Geral de Gibis: 0
@@ -115,7 +127,14 @@
                 </div>
                 <div class="filters-group">
                     <div class="category-filter">
-                        <label for="readFilter">📖 Exibir:</label>
+                        <label for="favFilter">⭐ Favoritos:</label>
+                        <select id="favFilter" onchange="window.renderTable()">
+                            <option value="TODOS">Todos</option>
+                            <option value="FAVORITOS">Apenas Favoritos</option>
+                        </select>
+                    </div>
+                    <div class="category-filter">
+                        <label for="readFilter">📖 Leitura:</label>
                         <select id="readFilter" onchange="window.renderTable()">
                             <option value="TODOS">Todos</option>
                             <option value="LIDOS">Lidos</option>
@@ -136,15 +155,15 @@
                 <table id="gibiTable">
                     <thead>
                         <tr>
-                            <th class="read-col">LIDO</th>
+                            <th class="status-col sortable-th" onclick="window.setSort('status')" title="Ordenar por Lido / Favorito">STATUS <span id="sortIcon_status" class="sort-icon"></span></th>
                             <th>CAPA</th>
-                            <th>PERSONAGEM</th>
-                            <th>Nº</th>
-                            <th>EDITORA</th>
-                            <th>CATEGORIA</th>
-                            <th>SÉRIE/FASE</th>
-                            <th>DATA</th>
-                            <th>ESTADO</th>
+                            <th class="sortable-th" onclick="window.setSort('personagem')" title="Ordenar por Personagem">PERSONAGEM <span id="sortIcon_personagem" class="sort-icon"></span></th>
+                            <th class="sortable-th" onclick="window.setSort('numero')" title="Ordenar por Número">Nº <span id="sortIcon_numero" class="sort-icon">▲</span></th>
+                            <th class="sortable-th" onclick="window.setSort('editora')" title="Ordenar por Editora">EDITORA <span id="sortIcon_editora" class="sort-icon"></span></th>
+                            <th class="sortable-th" onclick="window.setSort('categoria')" title="Ordenar por Categoria">CATEGORIA <span id="sortIcon_categoria" class="sort-icon"></span></th>
+                            <th class="sortable-th" onclick="window.setSort('serie')" title="Ordenar por Série/Fase">SÉRIE/FASE <span id="sortIcon_serie" class="sort-icon"></span></th>
+                            <th class="sortable-th" onclick="window.setSort('data')" title="Ordenar por Data">DATA <span id="sortIcon_data" class="sort-icon"></span></th>
+                            <th class="sortable-th" onclick="window.setSort('estado')" title="Ordenar por Estado">ESTADO <span id="sortIcon_estado" class="sort-icon"></span></th>
                             <th class="no-pdf actions-cell">AÇÕES</th>
                         </tr>
                     </thead>
