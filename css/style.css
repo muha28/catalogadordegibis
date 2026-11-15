@@ -10,6 +10,7 @@
     --border-color: #e2e8f0;
     --border-input: #cbd5e1;
     --table-header-bg: #f1f5f9;
+    --table-header-hover: #e2e8f0;
     --table-header-color: #475569;
     --table-row-bg: #ffffff;
     --table-row-read-bg: #f0fdf4;
@@ -30,6 +31,7 @@
         --border-color: #334155;
         --border-input: #475569;
         --table-header-bg: #0f172a;
+        --table-header-hover: #1e293b;
         --table-header-color: #cbd5e1;
         --table-row-bg: #1e293b;
         --table-row-read-bg: rgba(16, 185, 129, 0.08);
@@ -50,6 +52,7 @@
     --border-color: #334155;
     --border-input: #475569;
     --table-header-bg: #0f172a;
+    --table-header-hover: #1e293b;
     --table-header-color: #cbd5e1;
     --table-row-bg: #1e293b;
     --table-row-read-bg: rgba(16, 185, 129, 0.08);
@@ -69,6 +72,7 @@
     --border-color: #e2e8f0;
     --border-input: #cbd5e1;
     --table-header-bg: #f1f5f9;
+    --table-header-hover: #e2e8f0;
     --table-header-color: #475569;
     --table-row-bg: #ffffff;
     --table-row-read-bg: #f0fdf4;
@@ -190,12 +194,12 @@ body {
 
 .collection-counters {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.counter-badge, #counterCurrentSheet, #counterReadSheet, #counterTotal {
+.counter-badge, #counterCurrentSheet, #counterReadSheet, #counterFavSheet, #counterTotal {
     background-color: var(--bg-header);
     color: var(--text-muted);
     padding: 6px 12px;
@@ -356,14 +360,20 @@ button {
     flex-wrap: wrap;
 }
 
+.form-checks-group {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-left: auto;
+}
+
 .read-checkbox-label {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     cursor: pointer;
     font-weight: 600;
     user-select: none;
-    margin-left: auto;
 }
 
 .read-checkbox-label input[type="checkbox"] {
@@ -371,6 +381,10 @@ button {
     height: 18px;
     accent-color: #10b981;
     cursor: pointer;
+}
+
+.fav-checkbox-label input[type="checkbox"] {
+    accent-color: #f59e0b;
 }
 
 .filter-bar {
@@ -391,7 +405,7 @@ button {
 
 .search-box input {
     width: 100%;
-    min-width: 280px;
+    min-width: 260px;
 }
 
 .table-responsive {
@@ -420,26 +434,72 @@ th {
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    user-select: none;
 }
 
-.read-col, .read-cell {
-    width: 54px;
+th.sortable-th {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    white-space: nowrap;
+}
+
+th.sortable-th:hover {
+    background-color: var(--table-header-hover);
+}
+
+.sort-icon {
+    font-size: 0.7rem;
+    margin-left: 3px;
+    color: #3b82f6;
+}
+
+/* Coluna de Status (Lido + Estrela de Favorito) */
+.status-col, .status-cell {
+    width: 82px;
     text-align: center;
+    white-space: nowrap;
+}
+
+.status-controls {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .read-checkbox {
-    width: 19px;
-    height: 19px;
+    width: 18px;
+    height: 18px;
     accent-color: #10b981;
     cursor: pointer;
     vertical-align: middle;
+}
+
+.btn-fav-star {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #94a3b8;
+    transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.btn-fav-star:hover {
+    transform: scale(1.2);
+}
+
+.btn-fav-star.is-fav {
+    color: #f59e0b;
+    text-shadow: 0 0 6px rgba(245, 158, 11, 0.35);
 }
 
 tr.gibi-lido {
     background-color: var(--table-row-read-bg);
 }
 
-tr.gibi-lido td:not(.capa-cell):not(.actions-cell):not(.read-cell) {
+tr.gibi-lido td:not(.capa-cell):not(.actions-cell):not(.status-cell) {
     opacity: 0.82;
 }
 

@@ -39,11 +39,20 @@ const db = getFirestore(app);
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
+const ALL_SHEETS_KEY = "__TODOS__";
+
 let fundosPersonagens = { "default": "" };
 let database = {};
 let currentSheet = "";
 let editingId = null;
+let editingOriginSheet = null;
 let currentUser = null;
+
+// Estado de ordenação das colunas
+let sortState = {
+    column: "numero",
+    direction: "asc" // "asc" ou "desc"
+};
 
 function imageToBase64(file, maxWidth = 220) {
     return new Promise((resolve, reject) => {
@@ -143,7 +152,7 @@ async function saveUserMeta() {
 }
 
 async function saveSheetToFirestore(sheetName) {
-    if (!currentUser) return;
+    if (!currentUser || sheetName === ALL_SHEETS_KEY) return;
     try {
         const safeId = encodeURIComponent(sheetName);
         await setDoc(doc(db, "users", currentUser.uid, "colecoes", safeId), {
@@ -192,6 +201,7 @@ async function loadUserData() {
                             gibi.id = '_' + Math.random().toString(36).substr(2, 9);
                         }
                         gibi.lido = Boolean(gibi.lido);
+                        gibi.favorito = Boolean(gibi.favorito);
                     });
                     database[data.nome] = data.itens;
                 }
@@ -210,7 +220,7 @@ async function loadUserData() {
 }
 
 async function saveData(sheetName = currentSheet) {
-    if (sheetName) {
+    if (sheetName && sheetName !== ALL_SHEETS_KEY) {
         await saveSheetToFirestore(sheetName);
     }
 }
@@ -221,19 +231,31 @@ function init() {
         database["Minha Coleção"] = [];
         currentSheet = "Minha Coleção";
         saveData(currentSheet);
-    } else if (!database[currentSheet]) {
+    } else if (currentSheet !== ALL_SHEETS_KEY && !database[currentSheet]) {
         currentSheet = sheets[0];
     }
     editingId = null;
+    editingOriginSheet = null;
     updateSheetDropdown(); 
     updateCategoryFilterOptions();
+    updateSortIcons();
     renderTable(); 
 }
 
 function updateSheetDropdown() {
     const select = document.getElementById('sheetSelect');
+    const targetSelect = document.getElementById('targetSheetSelect');
+    const btnDeleteSheet = document.getElementById('btnDeleteSheet');
     if (!select) return;
+
     select.innerHTML = '';
+
+    // Opção especial para exibir todos os personagens
+    const allOption = document.createElement('option');
+    allOption.value = ALL_SHEETS_KEY;
+    allOption.textContent = "🌟 Todas as Coleções";
+    if (currentSheet === ALL_SHEETS_KEY) allOption.selected = true;
+    select.appendChild(allOption);
 
     const sortedSheets = Object.keys(database).sort((a, b) => 
         a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
@@ -247,8 +269,28 @@ function updateSheetDropdown() {
         select.appendChild(option);
     });
 
+    // Sincroniza seletor de destino no formulário quando estiver em "Todos os Personagens"
+    if (targetSelect) {
+        targetSelect.innerHTML = '';
+        sortedSheets.forEach(sheet => {
+            const opt = document.createElement('option');
+            opt.value = sheet;
+            opt.textContent = `Salvar em: ${sheet}`;
+            targetSelect.appendChild(opt);
+        });
+        targetSelect.style.display = currentSheet === ALL_SHEETS_KEY ? 'block' : 'none';
+    }
+
+    if (btnDeleteSheet) {
+        btnDeleteSheet.style.display = currentSheet === ALL_SHEETS_KEY ? 'none' : 'inline-block';
+    }
+
     const titleEl = document.getElementById('currentSheetTitle');
-    if (titleEl) titleEl.innerText = "COLEÇÃO: " + currentSheet.toUpperCase();
+    if (titleEl) {
+        titleEl.innerText = currentSheet === ALL_SHEETS_KEY
+            ? "COLEÇÃO: TODOS OS PERSONAGENS"
+            : "COLEÇÃO: " + currentSheet.toUpperCase();
+    }
 }
 
 function updateCategoryFilterOptions() {
@@ -258,9 +300,16 @@ function updateCategoryFilterOptions() {
     const selectedValue = filterSelect.value;
     filterSelect.innerHTML = '<option value="TODAS">Todas as Categorias</option>';
 
-    if (!database[currentSheet]) return;
+    let itemsSource = [];
+    if (currentSheet === ALL_SHEETS_KEY) {
+        Object.values(database).forEach(arr => {
+            if (Array.isArray(arr)) itemsSource.push(...arr);
+        });
+    } else if (database[currentSheet]) {
+        itemsSource = database[currentSheet];
+    }
 
-    const categorias = [...new Set(database[currentSheet].map(item => item.categoria ? item.categoria.trim() : ""))]
+    const categorias = [...new Set(itemsSource.map(item => item.categoria ? item.categoria.trim() : ""))]
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
 
@@ -290,6 +339,7 @@ window.createNewSheet = async function() {
 };
 
 window.deleteCurrentSheet = async function() {
+    if (currentSheet === ALL_SHEETS_KEY) return;
     if (confirm(`Tem certeza que deseja excluir a lista "${currentSheet}"?`)) {
         const sheetToDelete = currentSheet;
         delete database[sheetToDelete];
@@ -319,6 +369,15 @@ window.addGibi = async function(event) {
     const submitBtn = event.target.querySelector('button[type="submit"]') || event.target.querySelector('.btn-add');
     if (submitBtn && submitBtn.disabled) return;
 
+    const targetSheet = currentSheet === ALL_SHEETS_KEY
+        ? document.getElementById('targetSheetSelect')?.value
+        : currentSheet;
+
+    if (!targetSheet) {
+        alert("Selecione ou crie uma lista de personagem primeiro.");
+        return;
+    }
+
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.dataset.originalHtml = submitBtn.innerHTML;
@@ -328,19 +387,21 @@ window.addGibi = async function(event) {
     try {
         const fileInput = document.getElementById('capaInput');
         const lidoInput = document.getElementById('lidoInput');
+        const favoritoInput = document.getElementById('favoritoInput');
         let capaURL = "";
 
         if (fileInput && fileInput.files && fileInput.files[0]) {
             capaURL = await imageToBase64(fileInput.files[0]);
         }
 
-        if (!database[currentSheet]) {
-            database[currentSheet] = [];
+        if (!database[targetSheet]) {
+            database[targetSheet] = [];
         }
 
-        database[currentSheet].push({
+        database[targetSheet].push({
             id: '_' + Math.random().toString(36).substr(2, 9),
             lido: lidoInput ? lidoInput.checked : false,
+            favorito: favoritoInput ? favoritoInput.checked : false,
             capa: capaURL,
             editora: document.getElementById('editora').value.trim(),
             categoria: document.getElementById('categoria').value.trim(),
@@ -350,10 +411,13 @@ window.addGibi = async function(event) {
             estado: document.getElementById('estado').value.trim()
         });
 
-        await saveData(currentSheet);
+        await saveData(targetSheet);
         updateCategoryFilterOptions();
         renderTable(); 
         document.getElementById('addGibiForm').reset();
+        if (currentSheet === ALL_SHEETS_KEY && document.getElementById('targetSheetSelect')) {
+            document.getElementById('targetSheetSelect').value = targetSheet;
+        }
     } catch (err) {
         console.error("Erro ao adicionar gibi:", err);
         alert("Erro ao adicionar o gibi. Verifique o console.");
@@ -377,14 +441,27 @@ window.toggleLidoInSheet = async function(sheetName, gibiId, isChecked) {
     await saveData(targetSheet);
 };
 
-// Função para duplicar os dados de um gibi para o formulário
+window.toggleFavoritoInSheet = async function(sheetName, gibiId) {
+    const targetSheet = sheetName || currentSheet;
+    if (!database[targetSheet]) return;
+
+    const item = database[targetSheet].find(g => g.id === gibiId);
+    if (!item) return;
+
+    item.favorito = !item.favorito;
+    renderTable();
+    await saveData(targetSheet);
+};
+
 window.duplicateGibi = function(sheetName, gibiId) {
     const targetSheet = sheetName || currentSheet;
     const item = database[targetSheet]?.find(g => g.id === gibiId);
     if (!item) return;
 
-    // Se estiver em outra coleção, muda para ela automaticamente
-    if (currentSheet !== targetSheet) {
+    if (currentSheet === ALL_SHEETS_KEY) {
+        const targetSelect = document.getElementById('targetSheetSelect');
+        if (targetSelect) targetSelect.value = targetSheet;
+    } else if (currentSheet !== targetSheet) {
         currentSheet = targetSheet;
         const select = document.getElementById('sheetSelect');
         if (select) select.value = targetSheet;
@@ -394,28 +471,19 @@ window.duplicateGibi = function(sheetName, gibiId) {
     document.getElementById('editora').value = item.editora || '';
     document.getElementById('categoria').value = item.categoria || '';
     document.getElementById('serie').value = item.serie || '';
-    document.getElementById('numero').value = ''; // Deixa o número limpo para o próximo
+    document.getElementById('numero').value = '';
     document.getElementById('data').value = item.data || '';
     document.getElementById('estado').value = item.estado || '';
     document.getElementById('lidoInput').checked = false;
+    document.getElementById('favoritoInput').checked = Boolean(item.favorito);
 
-    // Rola a tela suavemente para o formulário no topo
     document.getElementById('addGibiForm').scrollIntoView({ behavior: 'smooth' });
     document.getElementById('numero').focus();
 };
 
-window.deleteGibi = async function(index) {
-    if (confirm("Remover este gibi?")) { 
-        database[currentSheet].splice(index, 1); 
-        editingId = null;
-        await saveData(currentSheet); 
-        updateCategoryFilterOptions();
-        renderTable(); 
-    }
-};
-
 window.cancelEdit = function() { 
-    editingId = null; 
+    editingId = null;
+    editingOriginSheet = null;
     renderTable(); 
 };
 
@@ -430,6 +498,7 @@ window.saveEdit = async function(sheetName, gibiId) {
 
     const fileInput = document.getElementById(`editCapa_${gibiId}`);
     const editLidoEl = document.getElementById(`editLido_${gibiId}`);
+    const editFavEl = document.getElementById(`editFav_${gibiId}`);
     let capaURL = database[targetSheet][itemIndex].capa || "";
 
     if (fileInput && fileInput.files && fileInput.files[0]) {
@@ -443,6 +512,7 @@ window.saveEdit = async function(sheetName, gibiId) {
     database[targetSheet][itemIndex] = {
         id: gibiId,
         lido: editLidoEl ? editLidoEl.checked : Boolean(database[targetSheet][itemIndex].lido),
+        favorito: editFavEl ? editFavEl.checked : Boolean(database[targetSheet][itemIndex].favorito),
         capa: capaURL,
         numero: parseInt(document.getElementById(`editNumero_${gibiId}`).value) || 0,
         editora: document.getElementById(`editEditora_${gibiId}`).value.trim(),
@@ -453,6 +523,7 @@ window.saveEdit = async function(sheetName, gibiId) {
     };
 
     editingId = null;
+    editingOriginSheet = null;
     await saveData(targetSheet);
     updateCategoryFilterOptions();
     renderTable();
@@ -473,10 +544,8 @@ window.closeImageModal = function() {
 };
 
 window.startEditInSheet = function(sheetName, gibiId) {
-    currentSheet = sheetName;
-    const select = document.getElementById('sheetSelect');
-    if (select) select.value = sheetName;
     editingId = gibiId;
+    editingOriginSheet = sheetName;
     renderTable();
 };
 
@@ -484,47 +553,101 @@ window.deleteGibiInSheet = async function(sheetName, index) {
     if (confirm(`Remover este gibi da coleção "${sheetName}"?`)) { 
         database[sheetName].splice(index, 1); 
         editingId = null;
+        editingOriginSheet = null;
         await saveData(sheetName); 
         updateCategoryFilterOptions();
         renderTable(); 
     }
 };
 
+// Ordenação por colunas
+window.setSort = function(column) {
+    if (sortState.column === column) {
+        sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
+    } else {
+        sortState.column = column;
+        sortState.direction = column === "status" ? "desc" : "asc";
+    }
+    updateSortIcons();
+    renderTable();
+};
+
+function updateSortIcons() {
+    const cols = ["status", "personagem", "numero", "editora", "categoria", "serie", "data", "estado"];
+    cols.forEach(col => {
+        const iconEl = document.getElementById(`sortIcon_${col}`);
+        if (iconEl) {
+            if (sortState.column === col) {
+                iconEl.textContent = sortState.direction === "asc" ? "▲" : "▼";
+            } else {
+                iconEl.textContent = "";
+            }
+        }
+    });
+}
+
+function sortItems(items) {
+    const dir = sortState.direction === "asc" ? 1 : -1;
+    const col = sortState.column;
+
+    return items.sort((a, b) => {
+        if (col === "numero") {
+            return ((a.numero || 0) - (b.numero || 0)) * dir;
+        }
+        if (col === "status") {
+            // Prioriza favoritos e depois lidos
+            const scoreA = (a.favorito ? 2 : 0) + (a.lido ? 1 : 0);
+            const scoreB = (b.favorito ? 2 : 0) + (b.lido ? 1 : 0);
+            if (scoreA !== scoreB) return (scoreA - scoreB) * dir;
+            return (a.numero || 0) - (b.numero || 0);
+        }
+        if (col === "personagem") {
+            const cmp = (a._originSheet || "").localeCompare(b._originSheet || "", 'pt-BR', { sensitivity: 'base' });
+            return cmp !== 0 ? cmp * dir : (a.numero || 0) - (b.numero || 0);
+        }
+        const valA = (a[col] || "").toString();
+        const valB = (b[col] || "").toString();
+        const cmp = valA.localeCompare(valB, 'pt-BR', { sensitivity: 'base', numeric: true });
+        return cmp !== 0 ? cmp * dir : (a.numero || 0) - (b.numero || 0);
+    });
+}
+
 function updateCounters(renderedCount = 0, isGlobal = false, filteredItems = []) {
-    const currentList = database[currentSheet] || [];
-    const totalCurrentSheet = currentList.length;
-    const readCurrentSheet = currentList.filter(item => item.lido).length;
+    const isAllSheets = currentSheet === ALL_SHEETS_KEY;
+
+    let baseList = [];
+    if (isAllSheets) {
+        Object.values(database).forEach(arr => {
+            if (Array.isArray(arr)) baseList.push(...arr);
+        });
+    } else {
+        baseList = database[currentSheet] || [];
+    }
+
+    const totalBase = baseList.length;
     const totalAllSheets = Object.values(database).reduce((acc, sheet) => acc + (Array.isArray(sheet) ? sheet.length : 0), 0);
 
     const listCounterEl = document.getElementById('listCounter') || document.getElementById('counterCurrentSheet');
     if (listCounterEl) {
-        if (isGlobal) {
-            listCounterEl.innerText = `${renderedCount} encontrado(s)`;
+        if (isGlobal || isAllSheets) {
+            listCounterEl.innerText = `Exibindo: ${renderedCount} de ${totalBase}`;
         } else {
-            listCounterEl.innerText = `Gibis nesta coleção: ${renderedCount} (de ${totalCurrentSheet})`;
+            listCounterEl.innerText = `Gibis nesta coleção: ${renderedCount} (de ${totalBase})`;
         }
     }
 
     const readCounterEl = document.getElementById('counterReadSheet');
     if (readCounterEl) {
-        let readTargetCount = readCurrentSheet;
-        let totalTargetCount = totalCurrentSheet;
-
-        // Se estiver filtrando por categoria ou busca, calcula o percentual em cima do que está visível na tela
-        if (!isGlobal) {
-            const selectedCat = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
-            if (selectedCat !== "TODAS") {
-                const catItems = currentList.filter(item => item.categoria && item.categoria.trim() === selectedCat);
-                totalTargetCount = catItems.length;
-                readTargetCount = catItems.filter(item => item.lido).length;
-            } else {
-                totalTargetCount = renderedCount;
-                readTargetCount = filteredItems.filter(item => item.lido).length;
-            }
-        }
-
+        const readTargetCount = filteredItems.filter(item => item.lido).length;
+        const totalTargetCount = renderedCount;
         const percent = totalTargetCount > 0 ? Math.round((readTargetCount / totalTargetCount) * 100) : 0;
         readCounterEl.innerText = `Lidos: ${readTargetCount}/${totalTargetCount} (${percent}%)`;
+    }
+
+    const favCounterEl = document.getElementById('counterFavSheet');
+    if (favCounterEl) {
+        const favCount = filteredItems.filter(item => item.favorito).length;
+        favCounterEl.innerText = `⭐ Favoritos: ${favCount}`;
     }
 
     const totalCounterEl = document.getElementById('totalCounter') || document.getElementById('counterTotal');
@@ -539,6 +662,7 @@ window.renderTable = function() {
 
     const selectedFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
     const selectedReadFilter = document.getElementById('readFilter') ? document.getElementById('readFilter').value : "TODOS";
+    const selectedFavFilter = document.getElementById('favFilter') ? document.getElementById('favFilter').value : "TODOS";
     const searchInput = document.getElementById('searchInput');
     const rawSearch = searchInput ? searchInput.value.trim() : "";
 
@@ -546,37 +670,42 @@ window.renderTable = function() {
 
     let itemsToRender = [];
     const isGlobalSearch = rawSearch !== "";
+    const isAllSheets = currentSheet === ALL_SHEETS_KEY;
 
     const normalizeStr = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-    const matchesReadStatus = (item) => {
-        if (selectedReadFilter === "LIDOS") return Boolean(item.lido);
-        if (selectedReadFilter === "NAO_LIDOS") return !item.lido;
-        return true;
+    const matchesFilters = (item) => {
+        const matchesCategory = selectedFilter === "TODAS" || (item.categoria && item.categoria.trim() === selectedFilter);
+        const matchesRead = selectedReadFilter === "LIDOS" ? Boolean(item.lido)
+            : selectedReadFilter === "NAO_LIDOS" ? !item.lido
+            : true;
+        const matchesFav = selectedFavFilter === "FAVORITOS" ? Boolean(item.favorito) : true;
+        return matchesCategory && matchesRead && matchesFav;
     };
 
-    if (isGlobalSearch) {
-        const terms = rawSearch.split(/\s+/).filter(Boolean).map(normalizeStr);
+    if (isGlobalSearch || isAllSheets) {
+        const terms = isGlobalSearch ? rawSearch.split(/\s+/).filter(Boolean).map(normalizeStr) : [];
 
         Object.keys(database).forEach(sheetName => {
             const sheetItems = database[sheetName];
             if (Array.isArray(sheetItems)) {
                 sheetItems.forEach(item => {
-                    const rawContent = [
-                        sheetName,
-                        item.numero !== undefined && item.numero !== null ? item.numero.toString() : "",
-                        item.editora || "",
-                        item.categoria || "",
-                        item.serie || "",
-                        item.data || "",
-                        item.estado || ""
-                    ].join(" ");
+                    let matchesSearch = true;
+                    if (terms.length > 0) {
+                        const rawContent = [
+                            sheetName,
+                            item.numero !== undefined && item.numero !== null ? item.numero.toString() : "",
+                            item.editora || "",
+                            item.categoria || "",
+                            item.serie || "",
+                            item.data || "",
+                            item.estado || ""
+                        ].join(" ");
+                        const itemContent = normalizeStr(rawContent);
+                        matchesSearch = terms.every(term => itemContent.includes(term));
+                    }
 
-                    const itemContent = normalizeStr(rawContent);
-                    const matchesSearch = terms.every(term => itemContent.includes(term));
-                    const matchesCategory = selectedFilter === "TODAS" || (item.categoria && item.categoria.trim() === selectedFilter);
-
-                    if (matchesSearch && matchesCategory && matchesReadStatus(item)) {
+                    if (matchesSearch && matchesFilters(item)) {
                         itemsToRender.push({ ...item, _originSheet: sheetName });
                     }
                 });
@@ -588,17 +717,11 @@ window.renderTable = function() {
             return;
         }
 
-        let currentItems = [...database[currentSheet]];
-
-        if (selectedFilter !== "TODAS") {
-            currentItems = currentItems.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
-        }
-
-        currentItems = currentItems.filter(matchesReadStatus);
-        currentItems.sort((a, b) => a.numero - b.numero);
-
+        const currentItems = database[currentSheet].filter(matchesFilters);
         itemsToRender = currentItems.map(item => ({ ...item, _originSheet: currentSheet }));
     }
+
+    itemsToRender = sortItems(itemsToRender);
 
     itemsToRender.forEach((item) => {
         const originSheet = item._originSheet;
@@ -610,9 +733,14 @@ window.renderTable = function() {
             item.id = '_' + Math.random().toString(36).substr(2, 9);
         }
 
-        if (editingId === item.id && currentSheet === originSheet) {
+        if (editingId === item.id && editingOriginSheet === originSheet) {
             tr.innerHTML = `
-                <td class="read-cell"><input type="checkbox" class="read-checkbox" id="editLido_${item.id}" ${item.lido ? 'checked' : ''}></td>
+                <td class="status-cell">
+                    <div class="status-controls">
+                        <input type="checkbox" class="read-checkbox" id="editLido_${item.id}" ${item.lido ? 'checked' : ''} title="Lido">
+                        <input type="checkbox" id="editFav_${item.id}" ${item.favorito ? 'checked' : ''} title="Favorito" style="accent-color:#f59e0b; width:18px; height:18px; cursor:pointer;">
+                    </div>
+                </td>
                 <td class="capa-cell"><input type="file" id="editCapa_${item.id}" accept="image/*" style="font-size:10px; width:70px;"></td>
                 <td><strong>${originSheet}</strong></td>
                 <td><input type="number" id="editNumero_${item.id}"></td>
@@ -644,15 +772,28 @@ window.renderTable = function() {
             }, 0);
 
         } else {
-            const tdRead = document.createElement('td');
-            tdRead.className = 'read-cell';
+            const tdStatus = document.createElement('td');
+            tdStatus.className = 'status-cell';
+            const statusWrapper = document.createElement('div');
+            statusWrapper.className = 'status-controls';
+
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'read-checkbox';
             checkbox.checked = Boolean(item.lido);
             checkbox.title = item.lido ? 'Marcar como não lido' : 'Marcar como lido';
             checkbox.onchange = (e) => toggleLidoInSheet(originSheet, item.id, e.target.checked);
-            tdRead.appendChild(checkbox);
+
+            const favBtn = document.createElement('button');
+            favBtn.type = 'button';
+            favBtn.className = `btn-fav-star ${item.favorito ? 'is-fav' : ''}`;
+            favBtn.textContent = item.favorito ? '★' : '☆';
+            favBtn.title = item.favorito ? 'Remover dos favoritos' : 'Marcar como favorito';
+            favBtn.onclick = () => toggleFavoritoInSheet(originSheet, item.id);
+
+            statusWrapper.appendChild(checkbox);
+            statusWrapper.appendChild(favBtn);
+            tdStatus.appendChild(statusWrapper);
 
             const tdCapa = document.createElement('td');
             tdCapa.className = 'capa-cell';
@@ -702,7 +843,7 @@ window.renderTable = function() {
                 <button class="btn-delete" onclick="deleteGibiInSheet('${originSheet}', ${indexNoBanco})">Excluir</button>
             `;
 
-            tr.appendChild(tdRead);
+            tr.appendChild(tdStatus);
             tr.appendChild(tdCapa);
             tr.appendChild(tdPersonagem);
             tr.appendChild(tdNumero);
@@ -754,6 +895,7 @@ window.importarBackup = function(event) {
                     if (Array.isArray(database[sheet])) {
                         database[sheet].forEach(gibi => {
                             gibi.lido = Boolean(gibi.lido);
+                            gibi.favorito = Boolean(gibi.favorito);
                         });
                     }
                 });
@@ -789,9 +931,11 @@ window.exportToPDF = function() {
     
     actionCols.forEach(el => el.style.display = 'none');
 
+    const pdfName = currentSheet === ALL_SHEETS_KEY ? "Colecao_Completa" : `Colecao_${currentSheet}`;
+
     const opt = { 
         margin: 8, 
-        filename: `Colecao_${currentSheet}.pdf`, 
+        filename: `${pdfName}.pdf`, 
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 }, 
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
