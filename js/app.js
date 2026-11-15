@@ -12,12 +12,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Alternância automática de ambiente (Dev vs Prod)
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
 const firebaseConfig = isLocal 
     ? {
-        // PROJETO DE TESTES (DEV) - Suas chaves novas
         apiKey: "AIzaSyArZvRam5pfYEIyrYeGFM5-VYGg0tpGJVE",
         authDomain: "gibis-da-bibi-dev.firebaseapp.com",
         projectId: "gibis-da-bibi-dev",
@@ -27,7 +25,6 @@ const firebaseConfig = isLocal
         measurementId: "G-2TQPF15716"
       }
     : {
-        // PROJETO DE PRODUÇÃO (PROD) - As chaves oficiais da aplicação
         apiKey: "AIzaSyCp1T_3QhVTTE7zd8v-X50dTpP-jHzOUek",
         authDomain: "gibis-da-bibi.firebaseapp.com",
         projectId: "gibis-da-bibi",
@@ -40,7 +37,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Persistência local do Firebase Auth
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 let fundosPersonagens = { "default": "" };
@@ -49,9 +45,6 @@ let currentSheet = "";
 let editingId = null;
 let currentUser = null;
 
-/**
- * Converte e comprime imagens enviadas para Base64 (otimizado)
- */
 function imageToBase64(file, maxWidth = 220) {
     return new Promise((resolve, reject) => {
         if (!file) return resolve("");
@@ -83,7 +76,6 @@ function imageToBase64(file, maxWidth = 220) {
     });
 }
 
-// 1. Processa retorno de redirecionamentos do login do Google
 getRedirectResult(auth)
     .then((result) => {
         if (result && result.user) {
@@ -94,7 +86,6 @@ getRedirectResult(auth)
         console.error("Erro no retorno do redirect:", error);
     });
 
-// 2. Observador de Estado de Autenticação
 onAuthStateChanged(auth, async (user) => {
     const loginScreen = document.getElementById('loginScreen');
     const mainApp = document.getElementById('mainApp');
@@ -116,7 +107,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// 3. Funções Globais de Autenticação
 window.loginWithGoogle = async function() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -140,10 +130,6 @@ window.loginWithGoogle = async function() {
 window.logout = function() {
     signOut(auth);
 };
-
-// ==========================================================================
-// 4. OPERAÇÕES DE BANCO DE DADOS (COM SUBDOCUMENTOS)
-// ==========================================================================
 
 async function saveUserMeta() {
     if (!currentUser) return;
@@ -229,7 +215,6 @@ async function saveData(sheetName = currentSheet) {
     }
 }
 
-// 5. Inicialização e Atualização de Interface
 function init() { 
     const sheets = Object.keys(database);
     if (sheets.length === 0) {
@@ -289,7 +274,6 @@ function updateCategoryFilterOptions() {
     filterSelect.value = categorias.includes(selectedValue) ? selectedValue : "TODAS";
 }
 
-// 6. Manipulação de Listas/Coleções
 window.createNewSheet = async function() {
     const name = prompt("Nome do Personagem/Lista:");
     if (name && name.trim() !== "") {
@@ -329,7 +313,6 @@ window.changeSheet = function() {
     init(); 
 };
 
-// 7. Manipulação dos Items (Gibis) - COM TRAVA E SPINNER DE CARREGAMENTO
 window.addGibi = async function(event) {
     event.preventDefault();
     
@@ -382,7 +365,6 @@ window.addGibi = async function(event) {
     }
 };
 
-// Alterna status de leitura com 1 clique direto na tabela
 window.toggleLidoInSheet = async function(sheetName, gibiId, isChecked) {
     const targetSheet = sheetName || currentSheet;
     if (!database[targetSheet]) return;
@@ -393,6 +375,33 @@ window.toggleLidoInSheet = async function(sheetName, gibiId, isChecked) {
     item.lido = Boolean(isChecked);
     renderTable();
     await saveData(targetSheet);
+};
+
+// Função para duplicar os dados de um gibi para o formulário
+window.duplicateGibi = function(sheetName, gibiId) {
+    const targetSheet = sheetName || currentSheet;
+    const item = database[targetSheet]?.find(g => g.id === gibiId);
+    if (!item) return;
+
+    // Se estiver em outra coleção, muda para ela automaticamente
+    if (currentSheet !== targetSheet) {
+        currentSheet = targetSheet;
+        const select = document.getElementById('sheetSelect');
+        if (select) select.value = targetSheet;
+        updateCategoryFilterOptions();
+    }
+
+    document.getElementById('editora').value = item.editora || '';
+    document.getElementById('categoria').value = item.categoria || '';
+    document.getElementById('serie').value = item.serie || '';
+    document.getElementById('numero').value = ''; // Deixa o número limpo para o próximo
+    document.getElementById('data').value = item.data || '';
+    document.getElementById('estado').value = item.estado || '';
+    document.getElementById('lidoInput').checked = false;
+
+    // Rola a tela suavemente para o formulário no topo
+    document.getElementById('addGibiForm').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('numero').focus();
 };
 
 window.deleteGibi = async function(index) {
@@ -449,7 +458,6 @@ window.saveEdit = async function(sheetName, gibiId) {
     renderTable();
 };
 
-// 8. Modal de Imagem
 window.openImageModal = function(src) {
     const modal = document.getElementById('imageModal');
     const modalImg = document.getElementById('imgModalTarget');
@@ -463,10 +471,6 @@ window.closeImageModal = function() {
     const modal = document.getElementById('imageModal');
     if (modal) modal.style.display = 'none';
 };
-
-// ==========================================================================
-// 9. RENDERIZAÇÃO DA TABELA (Com Busca Global e Palavras Compostas)
-// ==========================================================================
 
 window.startEditInSheet = function(sheetName, gibiId) {
     currentSheet = sheetName;
@@ -486,7 +490,7 @@ window.deleteGibiInSheet = async function(sheetName, index) {
     }
 };
 
-function updateCounters(renderedCount = 0, isGlobal = false) {
+function updateCounters(renderedCount = 0, isGlobal = false, filteredItems = []) {
     const currentList = database[currentSheet] || [];
     const totalCurrentSheet = currentList.length;
     const readCurrentSheet = currentList.filter(item => item.lido).length;
@@ -503,7 +507,24 @@ function updateCounters(renderedCount = 0, isGlobal = false) {
 
     const readCounterEl = document.getElementById('counterReadSheet');
     if (readCounterEl) {
-        readCounterEl.innerText = `Lidos: ${readCurrentSheet}/${totalCurrentSheet}`;
+        let readTargetCount = readCurrentSheet;
+        let totalTargetCount = totalCurrentSheet;
+
+        // Se estiver filtrando por categoria ou busca, calcula o percentual em cima do que está visível na tela
+        if (!isGlobal) {
+            const selectedCat = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
+            if (selectedCat !== "TODAS") {
+                const catItems = currentList.filter(item => item.categoria && item.categoria.trim() === selectedCat);
+                totalTargetCount = catItems.length;
+                readTargetCount = catItems.filter(item => item.lido).length;
+            } else {
+                totalTargetCount = renderedCount;
+                readTargetCount = filteredItems.filter(item => item.lido).length;
+            }
+        }
+
+        const percent = totalTargetCount > 0 ? Math.round((readTargetCount / totalTargetCount) * 100) : 0;
+        readCounterEl.innerText = `Lidos: ${readTargetCount}/${totalTargetCount} (${percent}%)`;
     }
 
     const totalCounterEl = document.getElementById('totalCounter') || document.getElementById('counterTotal');
@@ -563,7 +584,7 @@ window.renderTable = function() {
         });
     } else {
         if (!database[currentSheet]) {
-            updateCounters(0, false);
+            updateCounters(0, false, []);
             return;
         }
 
@@ -676,6 +697,7 @@ window.renderTable = function() {
             const tdActions = document.createElement('td');
             tdActions.className = 'actions-cell no-pdf';
             tdActions.innerHTML = `
+                <button class="btn-duplicate" onclick="duplicateGibi('${originSheet}', '${item.id}')" title="Duplicar dados para novo cadastro">Dup</button>
                 <button class="btn-edit" onclick="startEditInSheet('${originSheet}', '${item.id}')">Editar</button>
                 <button class="btn-delete" onclick="deleteGibiInSheet('${originSheet}', ${indexNoBanco})">Excluir</button>
             `;
@@ -695,10 +717,9 @@ window.renderTable = function() {
         tbody.appendChild(tr);
     });
 
-    updateCounters(itemsToRender.length, isGlobalSearch);
+    updateCounters(itemsToRender.length, isGlobalSearch, itemsToRender);
 };
 
-// 10. Funções do Backup JSON
 window.exportarBackup = function() {
     if (!database || Object.keys(database).length === 0) {
         alert("Não há dados para exportar.");
@@ -762,7 +783,6 @@ window.importarBackup = function(event) {
     reader.readAsText(file);
 };
 
-// 11. Exportação para PDF
 window.exportToPDF = function() {
     const element = document.getElementById('pdfContent');
     const actionCols = document.querySelectorAll('.no-pdf');
@@ -787,7 +807,6 @@ window.exportToPDF = function() {
     }
 };
 
-// Função única para alternar o tema
 window.toggleDarkMode = function() {
     const root = document.documentElement;
     
@@ -802,7 +821,6 @@ window.toggleDarkMode = function() {
     }
 };
 
-// Executa ao carregar a página para manter a preferência salva
 window.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) {

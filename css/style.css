@@ -20,7 +20,6 @@
     --shadow-color: rgba(0, 0, 0, 0.08);
 }
 
-/* Modo Escuro Automático baseado na preferência do sistema operacional */
 @media (prefers-color-scheme: dark) {
     :root:not(.light-mode) {
         --bg-body: #0f172a;
@@ -42,7 +41,6 @@
     }
 }
 
-/* Sobrescrita manual caso adicione classes via JS */
 :root.dark-mode {
     --bg-body: #0f172a;
     --bg-container: #1e293b;
@@ -81,10 +79,6 @@
     --shadow-color: rgba(0, 0, 0, 0.08);
 }
 
-
-/* ==========================================================================
-   2. RESETS E ESTILOS GERAIS
-   ========================================================================== */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -113,9 +107,6 @@ body {
     box-shadow: 0 4px 12px var(--shadow-color);
 }
 
-/* ==========================================================================
-   3. TELA DE LOGIN
-   ========================================================================== */
 #loginScreen {
     max-width: 450px;
     margin: 80px auto 0 auto;
@@ -154,9 +145,6 @@ body {
     box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
 }
 
-/* ==========================================================================
-   4. CABEÇALHO E MENSAGENS
-   ========================================================================== */
 .user-header {
     display: flex;
     justify-content: space-between;
@@ -218,9 +206,6 @@ body {
     display: inline-block;
 }
 
-/* ==========================================================================
-   5. BARRA DE CONTROLES E BOTÕES
-   ========================================================================== */
 .controls {
     display: flex;
     justify-content: space-between;
@@ -289,6 +274,15 @@ button {
     background-color: #059669;
 }
 
+.btn-duplicate {
+    background-color: #6366f1;
+    color: white;
+}
+
+.btn-duplicate:hover {
+    background-color: #4f46e5;
+}
+
 .btn-logout {
     background-color: #64748b;
     color: white;
@@ -300,7 +294,6 @@ button {
     border: 1px solid var(--border-input);
 }
 
-/* Submenu Dropdown */
 .settings-dropdown {
     position: relative;
     display: inline-block;
@@ -339,9 +332,6 @@ button {
     background-color: var(--bg-header);
 }
 
-/* ==========================================================================
-   6. FORMULÁRIO DE ADIÇÃO
-   ========================================================================== */
 .gibi-form {
     background-color: var(--form-bg);
     padding: 15px;
@@ -383,9 +373,6 @@ button {
     cursor: pointer;
 }
 
-/* ==========================================================================
-   7. BARRA DE FILTROS E BUSCA
-   ========================================================================== */
 .filter-bar {
     display: flex;
     justify-content: space-between;
@@ -407,9 +394,6 @@ button {
     min-width: 280px;
 }
 
-/* ==========================================================================
-   8. TABELA E CAPAS DOS GIBIS
-   ========================================================================== */
 .table-responsive {
     overflow-x: auto;
 }
@@ -438,7 +422,6 @@ th {
     letter-spacing: 0.5px;
 }
 
-/* Coluna e Checkbox de Leitura */
 .read-col, .read-cell {
     width: 54px;
     text-align: center;
@@ -460,7 +443,6 @@ tr.gibi-lido td:not(.capa-cell):not(.actions-cell):not(.read-cell) {
     opacity: 0.82;
 }
 
-/* Formatação da capa mini */
 .capa-cell {
     width: 70px;
     text-align: center;
@@ -504,7 +486,7 @@ tr.gibi-lido td:not(.capa-cell):not(.actions-cell):not(.read-cell) {
 .actions-cell {
     white-space: nowrap;
     text-align: center;
-    width: 120px;
+    width: 150px;
 }
 
 .actions-cell button {
@@ -523,9 +505,6 @@ td input[type="text"], td input[type="number"] {
     color: var(--text-color);
 }
 
-/* ==========================================================================
-   9. MODAL DE VISUALIZAÇÃO DA CAPA
-   ========================================================================== */
 .modal {
     display: none;
     position: fixed;
@@ -538,29 +517,6 @@ td input[type="text"], td input[type="number"] {
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(3px);
-}
-
-.modal-content {
-    max-width: 90%;
-    max-height: 90vh;
-    border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    object-fit: contain;
-}
-
-.modal-close {
-    position: absolute;
-    top: 20px;
-    right: 35px;
-    color: #fff;
-    font-size: 40px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.modal-close:hover {
-    color: #ef4444;
 }
 
 .btn-theme-toggle {
@@ -579,9 +535,6 @@ td input[type="text"], td input[type="number"] {
     background-color: var(--border-input);
 }
 
-/* ==========================================================================
-   10. IMPRESSÃO E PDF
-   ========================================================================== */
 @media print {
     .no-pdf {
         display: none !important;
@@ -597,9 +550,6 @@ td input[type="text"], td input[type="number"] {
     }
 }
 
-/* ==========================================================================
-   11. ANIMAÇÃO DE CARREGAMENTO (SPINNER) E BOTÃO PROCESSANDO
-   ========================================================================== */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
