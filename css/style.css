@@ -12,6 +12,7 @@
     --table-header-bg: #f1f5f9;
     --table-header-color: #475569;
     --table-row-bg: #ffffff;
+    --table-row-read-bg: #f0fdf4;
     --form-bg: #f8fafc;
     --placeholder-bg: #e2e8f0;
     --placeholder-color: #94a3b8;
@@ -32,6 +33,7 @@
         --table-header-bg: #0f172a;
         --table-header-color: #cbd5e1;
         --table-row-bg: #1e293b;
+        --table-row-read-bg: rgba(16, 185, 129, 0.08);
         --form-bg: #0f172a;
         --placeholder-bg: #334155;
         --placeholder-color: #64748b;
@@ -52,6 +54,7 @@
     --table-header-bg: #0f172a;
     --table-header-color: #cbd5e1;
     --table-row-bg: #1e293b;
+    --table-row-read-bg: rgba(16, 185, 129, 0.08);
     --form-bg: #0f172a;
     --placeholder-bg: #334155;
     --placeholder-color: #64748b;
@@ -70,6 +73,7 @@
     --table-header-bg: #f1f5f9;
     --table-header-color: #475569;
     --table-row-bg: #ffffff;
+    --table-row-read-bg: #f0fdf4;
     --form-bg: #f8fafc;
     --placeholder-bg: #e2e8f0;
     --placeholder-color: #94a3b8;
@@ -90,14 +94,11 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--bg-body);
-    
-    /* Imagem de fundo ocupando toda a tela */
     background-image: url('../assets/bg-login.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
-    
     color: var(--text-color);
     padding: 20px;
     min-height: 100vh;
@@ -113,17 +114,14 @@ body {
 }
 
 /* ==========================================================================
-   3. TELA DE LOGIN (Card Centralizado sobre a Imagem)
+   3. TELA DE LOGIN
    ========================================================================== */
 #loginScreen {
     max-width: 450px;
     margin: 80px auto 0 auto;
-    
-    /* Fundo levemente translúcido adaptável */
     background-color: var(--bg-container);
     opacity: 0.96;
     backdrop-filter: blur(5px);
-    
     padding: 40px 30px;
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
@@ -173,7 +171,7 @@ body {
 .user-header-actions {
     display: flex;
     align-items: center;
-    gap: 8px; /* Espaço entre o botão de Tema e o Sair */
+    gap: 8px;
 }
 
 .app-title h1 {
@@ -209,8 +207,7 @@ body {
     flex-wrap: wrap;
 }
 
-/* Compatibilizado com os IDs gerados pelo JS */
-.counter-badge, #counterCurrentSheet, #counterTotal {
+.counter-badge, #counterCurrentSheet, #counterReadSheet, #counterTotal {
     background-color: var(--bg-header);
     color: var(--text-muted);
     padding: 6px 12px;
@@ -219,12 +216,6 @@ body {
     font-weight: 600;
     border: 1px solid var(--border-input);
     display: inline-block;
-}
-
-.counter-badge strong, #counterCurrentSheet strong, #counterTotal strong {
-    color: #3b82f6;
-    font-size: 0.95rem;
-    margin-left: 2px;
 }
 
 /* ==========================================================================
@@ -369,9 +360,27 @@ button {
 .form-file-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
     margin-bottom: 12px;
     font-size: 0.9rem;
+    flex-wrap: wrap;
+}
+
+.read-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    user-select: none;
+    margin-left: auto;
+}
+
+.read-checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #10b981;
+    cursor: pointer;
 }
 
 /* ==========================================================================
@@ -380,8 +389,16 @@ button {
 .filter-bar {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 15px;
     margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.filters-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
@@ -419,6 +436,28 @@ th {
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+/* Coluna e Checkbox de Leitura */
+.read-col, .read-cell {
+    width: 54px;
+    text-align: center;
+}
+
+.read-checkbox {
+    width: 19px;
+    height: 19px;
+    accent-color: #10b981;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+tr.gibi-lido {
+    background-color: var(--table-row-read-bg);
+}
+
+tr.gibi-lido td:not(.capa-cell):not(.actions-cell):not(.read-cell) {
+    opacity: 0.82;
 }
 
 /* Formatação da capa mini */

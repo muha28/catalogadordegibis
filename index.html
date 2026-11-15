@@ -78,6 +78,11 @@
             <div class="form-file-row">
                 <label for="capaInput" class="file-label">Imagem da Capa (Opcional):</label>
                 <input type="file" id="capaInput" accept="image/*">
+
+                <label class="read-checkbox-label">
+                    <input type="checkbox" id="lidoInput">
+                    <span>Já li este gibi</span>
+                </label>
             </div>
 
             <button type="submit" class="btn-add">+ Adicionar À Lista</button>
@@ -93,6 +98,9 @@
                         <span id="counterCurrentSheet" class="counter-badge">
                             Gibis nesta coleção: 0
                         </span>
+                        <span id="counterReadSheet" class="counter-badge">
+                            Lidos: 0/0
+                        </span>
                         <span id="counterTotal" class="counter-badge">
                             Total Geral de Gibis: 0
                         </span>
@@ -105,11 +113,21 @@
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº..." oninput="window.renderTable()">
                 </div>
-                <div class="category-filter">
-                    <label for="categoryFilter">📂 Filtrar por Categoria:</label>
-                    <select id="categoryFilter" onchange="window.renderTable()">
-                        <option value="TODAS">Todas as Categorias</option>
-                    </select>
+                <div class="filters-group">
+                    <div class="category-filter">
+                        <label for="readFilter">📖 Leitura:</label>
+                        <select id="readFilter" onchange="window.renderTable()">
+                            <option value="TODOS">Todos</option>
+                            <option value="LIDOS">Lidos</option>
+                            <option value="NAO_LIDOS">Não lidos</option>
+                        </select>
+                    </div>
+                    <div class="category-filter">
+                        <label for="categoryFilter">📂 Categoria:</label>
+                        <select id="categoryFilter" onchange="window.renderTable()">
+                            <option value="TODAS">Todas as Categorias</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -118,6 +136,7 @@
                 <table id="gibiTable">
                     <thead>
                         <tr>
+                            <th class="read-col">LIDO</th>
                             <th>CAPA</th>
                             <th>PERSONAGEM</th>
                             <th>Nº</th>
