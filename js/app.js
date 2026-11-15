@@ -104,7 +104,7 @@ onAuthStateChanged(auth, async (user) => {
 
     if (user) {
         currentUser = user;
-        if (statusEl) statusEl.innerText = `Usuário: ${user.displayName || user.email}`;
+        if (statusEl) statusEl.innerText = `Bem vindo(a), Leitor(a): ${user.displayName || user.email} 🤓`;
         if (loginScreen) loginScreen.style.display = 'none';
         if (mainApp) mainApp.style.display = 'block';
 
