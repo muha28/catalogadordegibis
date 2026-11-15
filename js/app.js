@@ -207,6 +207,9 @@ async function loadUserData() {
                         }
                         gibi.lido = Boolean(gibi.lido);
                         gibi.favorito = Boolean(gibi.favorito);
+                        if (!gibi.universo || gibi.universo.trim() === "" || gibi.universo === "Nacional") {
+                            gibi.universo = "Mauricio de Sousa";
+                        }
                     });
                     database[data.nome] = data.itens;
                 }
@@ -231,7 +234,6 @@ async function saveData(sheetName = currentSheet) {
 }
 
 function init() { 
-    // Garante que toda vez que fechar e abrir o app/site, inicia em "Todas as Coleções"
     if (isFirstLoad) {
         if (!sessionStorage.getItem('app_started')) {
             currentSheet = ALL_SHEETS_KEY;
@@ -252,7 +254,8 @@ function init() {
     editingId = null;
     editingOriginSheet = null;
     updateSheetDropdown(); 
-    updateCategoryFilterOptions();
+    updateFilterOptions();
+    updateFormDatalists();
     updateSortIcons();
     renderTable(); 
 }
@@ -266,14 +269,12 @@ function updateSheetDropdown() {
 
     select.innerHTML = '';
 
-    // Opção especial para exibir todas as coleções
     const allOption = document.createElement('option');
     allOption.value = ALL_SHEETS_KEY;
     allOption.textContent = "🌟 Todas as Coleções";
     if (currentSheet === ALL_SHEETS_KEY) allOption.selected = true;
     select.appendChild(allOption);
 
-    // Ordena coleções: Favoritas primeiro (alfabética), depois não favoritas (alfabética)
     const sortedSheets = Object.keys(database).sort((a, b) => {
         const aFav = colecoesFavoritas.includes(a);
         const bFav = colecoesFavoritas.includes(b);
@@ -291,7 +292,6 @@ function updateSheetDropdown() {
         select.appendChild(option);
     });
 
-    // Sincroniza botão estrela da coleção atual
     if (btnFavCollection) {
         if (currentSheet === ALL_SHEETS_KEY) {
             btnFavCollection.style.display = 'none';
@@ -304,7 +304,6 @@ function updateSheetDropdown() {
         }
     }
 
-    // Sincroniza seletor de destino no formulário quando estiver em "Todas as Coleções"
     if (targetSelect) {
         targetSelect.innerHTML = '';
         sortedSheets.forEach(sheet => {
@@ -329,6 +328,53 @@ function updateSheetDropdown() {
     }
 }
 
+function updateFormDatalists() {
+    const universesList = document.getElementById('universosList');
+    const editorasList = document.getElementById('editorasList');
+    const categoriasList = document.getElementById('categoriasList');
+    const seriesList = document.getElementById('seriesList');
+
+    const defaultUniverses = ["Mauricio de Sousa", "Marvel", "DC", "Disney"];
+    const defaultEditors = ["Abril", "Globo", "Panini", "Culturama"];
+    const defaultCategories = ["Almanaque", "Gibi Mensal", "Edição Especial"];
+    const defaultSeries = ["1ª Série", "2ª Série", "3ª Série"];
+
+    let existingUniverses = [];
+    let existingEditors = [];
+    let existingCategories = [];
+    let existingSeries = [];
+
+    Object.values(database).forEach(arr => {
+        if (Array.isArray(arr)) {
+            arr.forEach(item => {
+                if (item.universo) existingUniverses.push(item.universo.trim());
+                if (item.editora) existingEditors.push(item.editora.trim());
+                if (item.categoria) existingCategories.push(item.categoria.trim());
+                if (item.serie) existingSeries.push(item.serie.trim());
+            });
+        }
+    });
+
+    const populateList = (element, defaults, existing) => {
+        if (!element) return;
+        const allValues = [...new Set([...defaults, ...existing])]
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+        
+        element.innerHTML = '';
+        allValues.forEach(val => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            element.appendChild(opt);
+        });
+    };
+
+    populateList(universesList, defaultUniverses, existingUniverses);
+    populateList(editorasList, defaultEditors, existingEditors);
+    populateList(categoriasList, defaultCategories, existingCategories);
+    populateList(seriesList, defaultSeries, existingSeries);
+}
+
 window.toggleCurrentSheetFavorite = async function() {
     if (currentSheet === ALL_SHEETS_KEY) return;
     const index = colecoesFavoritas.indexOf(currentSheet);
@@ -342,34 +388,46 @@ window.toggleCurrentSheetFavorite = async function() {
     renderTable();
 };
 
-function updateCategoryFilterOptions() {
-    const filterSelect = document.getElementById('categoryFilter');
-    if (!filterSelect) return;
-
-    const selectedValue = filterSelect.value;
-    filterSelect.innerHTML = '<option value="TODAS">Todas as Categorias</option>';
-
-    let itemsSource = [];
-    if (currentSheet === ALL_SHEETS_KEY) {
-        Object.values(database).forEach(arr => {
-            if (Array.isArray(arr)) itemsSource.push(...arr);
+function updateFilterOptions() {
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        const selectedCat = categoryFilter.value;
+        categoryFilter.innerHTML = '<option value="TODAS">Todas as Categorias</option>';
+        let itemsSource = [];
+        if (currentSheet === ALL_SHEETS_KEY) {
+            Object.values(database).forEach(arr => { if (Array.isArray(arr)) itemsSource.push(...arr); });
+        } else if (database[currentSheet]) {
+            itemsSource = database[currentSheet];
+        }
+        const categorias = [...new Set(itemsSource.map(i => i.categoria ? i.categoria.trim() : ""))]
+            .filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+        categorias.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat; opt.textContent = cat;
+            categoryFilter.appendChild(opt);
         });
-    } else if (database[currentSheet]) {
-        itemsSource = database[currentSheet];
+        categoryFilter.value = categorias.includes(selectedCat) ? selectedCat : "TODAS";
     }
 
-    const categorias = [...new Set(itemsSource.map(item => item.categoria ? item.categoria.trim() : ""))]
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
-
-    categorias.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        filterSelect.appendChild(option);
-    });
-
-    filterSelect.value = categorias.includes(selectedValue) ? selectedValue : "TODAS";
+    const universeFilter = document.getElementById('universeFilter');
+    if (universeFilter) {
+        const selectedUniv = universeFilter.value;
+        universeFilter.innerHTML = '<option value="TODOS">Todos os Universos</option>';
+        let itemsSource = [];
+        if (currentSheet === ALL_SHEETS_KEY) {
+            Object.values(database).forEach(arr => { if (Array.isArray(arr)) itemsSource.push(...arr); });
+        } else if (database[currentSheet]) {
+            itemsSource = database[currentSheet];
+        }
+        const universos = [...new Set(itemsSource.map(i => i.universo ? i.universo.trim() : "Mauricio de Sousa"))]
+            .filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+        universos.forEach(univ => {
+            const opt = document.createElement('option');
+            opt.value = univ; opt.textContent = univ;
+            universeFilter.appendChild(opt);
+        });
+        universeFilter.value = universos.includes(selectedUniv) ? selectedUniv : "TODOS";
+    }
 }
 
 window.createNewSheet = async function() {
@@ -407,10 +465,8 @@ window.deleteCurrentSheet = async function() {
 
 window.changeSheet = function() { 
     currentSheet = document.getElementById('sheetSelect').value; 
-    
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.value = '';
-
     init(); 
 };
 
@@ -449,21 +505,28 @@ window.addGibi = async function(event) {
             database[targetSheet] = [];
         }
 
+        const universoInput = document.getElementById('universo').value.trim();
+        const editoraInput = document.getElementById('editora').value.trim();
+        const categoriaInput = document.getElementById('categoria').value.trim();
+        const serieInput = document.getElementById('serie').value.trim();
+
         database[targetSheet].push({
             id: '_' + Math.random().toString(36).substr(2, 9),
             lido: lidoInput ? lidoInput.checked : false,
             favorito: favoritoInput ? favoritoInput.checked : false,
             capa: capaURL,
-            editora: document.getElementById('editora').value.trim(),
-            categoria: document.getElementById('categoria').value.trim(),
-            serie: document.getElementById('serie').value.trim(),
+            universo: universoInput !== "" ? universoInput : "Mauricio de Sousa",
+            editora: editoraInput,
+            categoria: categoriaInput,
+            serie: serieInput,
             numero: parseInt(document.getElementById('numero').value) || 0,
             data: document.getElementById('data').value.trim(),
             estado: document.getElementById('estado').value.trim()
         });
 
         await saveData(targetSheet);
-        updateCategoryFilterOptions();
+        updateFilterOptions();
+        updateFormDatalists();
         renderTable(); 
         document.getElementById('addGibiForm').reset();
         if (currentSheet === ALL_SHEETS_KEY && document.getElementById('targetSheetSelect')) {
@@ -516,9 +579,10 @@ window.duplicateGibi = function(sheetName, gibiId) {
         currentSheet = targetSheet;
         const select = document.getElementById('sheetSelect');
         if (select) select.value = targetSheet;
-        updateCategoryFilterOptions();
+        updateFilterOptions();
     }
 
+    document.getElementById('universo').value = item.universo || 'Mauricio de Sousa';
     document.getElementById('editora').value = item.editora || '';
     document.getElementById('categoria').value = item.categoria || '';
     document.getElementById('serie').value = item.serie || '';
@@ -560,15 +624,21 @@ window.saveEdit = async function(sheetName, gibiId) {
         }
     }
 
+    const newUniv = document.getElementById(`editUniverso_${gibiId}`).value.trim();
+    const newEd = document.getElementById(`editEditora_${gibiId}`).value.trim();
+    const newCat = document.getElementById(`editCategoria_${gibiId}`).value.trim();
+    const newSer = document.getElementById(`editSerie_${gibiId}`).value.trim();
+
     database[targetSheet][itemIndex] = {
         id: gibiId,
         lido: editLidoEl ? editLidoEl.checked : Boolean(database[targetSheet][itemIndex].lido),
         favorito: editFavEl ? editFavEl.checked : Boolean(database[targetSheet][itemIndex].favorito),
         capa: capaURL,
+        universo: newUniv !== "" ? newUniv : "Mauricio de Sousa",
+        editora: newEd,
+        categoria: newCat,
+        serie: newSer,
         numero: parseInt(document.getElementById(`editNumero_${gibiId}`).value) || 0,
-        editora: document.getElementById(`editEditora_${gibiId}`).value.trim(),
-        categoria: document.getElementById(`editCategoria_${gibiId}`).value.trim(),
-        serie: document.getElementById(`editSerie_${gibiId}`).value.trim(),
         data: document.getElementById(`editData_${gibiId}`).value.trim(),
         estado: document.getElementById(`editEstado_${gibiId}`).value.trim()
     };
@@ -576,7 +646,8 @@ window.saveEdit = async function(sheetName, gibiId) {
     editingId = null;
     editingOriginSheet = null;
     await saveData(targetSheet);
-    updateCategoryFilterOptions();
+    updateFilterOptions();
+    updateFormDatalists();
     renderTable();
 };
 
@@ -606,7 +677,8 @@ window.deleteGibiInSheet = async function(sheetName, index) {
         editingId = null;
         editingOriginSheet = null;
         await saveData(sheetName); 
-        updateCategoryFilterOptions();
+        updateFilterOptions();
+        updateFormDatalists();
         renderTable(); 
     }
 };
@@ -624,7 +696,7 @@ window.setSort = function(column) {
 };
 
 function updateSortIcons() {
-    const cols = ["status", "colecao", "numero", "editora", "categoria", "serie", "data", "estado"];
+    const cols = ["status", "colecao", "universo", "numero", "editora", "categoria", "serie", "data", "estado"];
     cols.forEach(col => {
         const iconEl = document.getElementById(`sortIcon_${col}`);
         if (iconEl) {
@@ -710,7 +782,8 @@ window.renderTable = function() {
     const tbody = document.getElementById('tableBody'); 
     if (!tbody) return;
 
-    const selectedFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
+    const selectedCategory = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
+    const selectedUniverse = document.getElementById('universeFilter') ? document.getElementById('universeFilter').value : "TODOS";
     const selectedReadFilter = document.getElementById('readFilter') ? document.getElementById('readFilter').value : "TODOS";
     const selectedFavFilter = document.getElementById('favFilter') ? document.getElementById('favFilter').value : "TODOS";
     const searchInput = document.getElementById('searchInput');
@@ -725,12 +798,14 @@ window.renderTable = function() {
     const normalizeStr = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
     const matchesFilters = (item) => {
-        const matchesCategory = selectedFilter === "TODAS" || (item.categoria && item.categoria.trim() === selectedFilter);
+        const itemUniv = item.universo || "Mauricio de Sousa";
+        const matchesUniverse = selectedUniverse === "TODOS" || itemUniv.trim() === selectedUniverse;
+        const matchesCategory = selectedCategory === "TODAS" || (item.categoria && item.categoria.trim() === selectedCategory);
         const matchesRead = selectedReadFilter === "LIDOS" ? Boolean(item.lido)
             : selectedReadFilter === "NAO_LIDOS" ? !item.lido
             : true;
         const matchesFav = selectedFavFilter === "FAVORITOS" ? Boolean(item.favorito) : true;
-        return matchesCategory && matchesRead && matchesFav;
+        return matchesUniverse && matchesCategory && matchesRead && matchesFav;
     };
 
     if (isGlobalSearch || isAllSheets) {
@@ -744,10 +819,11 @@ window.renderTable = function() {
                     if (terms.length > 0) {
                         const rawContent = [
                             sheetName,
-                            item.numero !== undefined && item.numero !== null ? item.numero.toString() : "",
+                            item.universo || "Mauricio de Sousa",
                             item.editora || "",
                             item.categoria || "",
                             item.serie || "",
+                            item.numero !== undefined && item.numero !== null ? item.numero.toString() : "",
                             item.data || "",
                             item.estado || ""
                         ].join(" ");
@@ -793,10 +869,11 @@ window.renderTable = function() {
                 </td>
                 <td class="capa-cell"><input type="file" id="editCapa_${item.id}" accept="image/*" style="font-size:10px; width:70px;"></td>
                 <td><strong>${originSheet}</strong></td>
+                <td><input type="text" id="editUniverso_${item.id}" list="universosList"></td>
                 <td><input type="number" id="editNumero_${item.id}"></td>
-                <td><input type="text" id="editEditora_${item.id}"></td>
-                <td><input type="text" id="editCategoria_${item.id}"></td>
-                <td><input type="text" id="editSerie_${item.id}"></td>
+                <td><input type="text" id="editEditora_${item.id}" list="editorasList"></td>
+                <td><input type="text" id="editCategoria_${item.id}" list="categoriasList"></td>
+                <td><input type="text" id="editSerie_${item.id}" list="seriesList"></td>
                 <td><input type="text" id="editData_${item.id}"></td>
                 <td><input type="text" id="editEstado_${item.id}"></td>
                 <td class="actions-cell no-pdf">
@@ -806,17 +883,19 @@ window.renderTable = function() {
             `;
 
             setTimeout(() => {
-                const elNum = tr.querySelector(`#editNumero_${item.id}`);
+                const elUniv = tr.querySelector(`#editUniverso_${item.id}`);
                 const elEd = tr.querySelector(`#editEditora_${item.id}`);
                 const elCat = tr.querySelector(`#editCategoria_${item.id}`);
                 const elSer = tr.querySelector(`#editSerie_${item.id}`);
+                const elNum = tr.querySelector(`#editNumero_${item.id}`);
                 const elData = tr.querySelector(`#editData_${item.id}`);
                 const elEst = tr.querySelector(`#editEstado_${item.id}`);
 
-                if (elNum) elNum.value = item.numero;
+                if (elUniv) elUniv.value = item.universo || 'Mauricio de Sousa';
                 if (elEd) elEd.value = item.editora || '';
                 if (elCat) elCat.value = item.categoria || '';
                 if (elSer) elSer.value = item.serie || '';
+                if (elNum) elNum.value = item.numero;
                 if (elData) elData.value = item.data || '';
                 if (elEst) elEst.value = item.estado || '';
             }, 0);
@@ -866,6 +945,9 @@ window.renderTable = function() {
             const tdPersonagem = document.createElement('td');
             tdPersonagem.innerHTML = `<strong>${originSheet}</strong>`;
 
+            const tdUniverso = document.createElement('td');
+            tdUniverso.textContent = item.universo || 'Mauricio de Sousa';
+
             const tdNumero = document.createElement('td');
             tdNumero.className = 'numero-cell';
             tdNumero.textContent = `Nº ${item.numero}`;
@@ -896,6 +978,7 @@ window.renderTable = function() {
             tr.appendChild(tdStatus);
             tr.appendChild(tdCapa);
             tr.appendChild(tdPersonagem);
+            tr.appendChild(tdUniverso);
             tr.appendChild(tdNumero);
             tr.appendChild(tdEditora);
             tr.appendChild(tdCategoria);
@@ -946,16 +1029,13 @@ window.importarBackup = function(event) {
                         database[sheet].forEach(gibi => {
                             gibi.lido = Boolean(gibi.lido);
                             gibi.favorito = Boolean(gibi.favorito);
+                            if (!gibi.universo || gibi.universo === "Nacional") gibi.universo = "Mauricio de Sousa";
                         });
                     }
                 });
 
-                if (data.fundosPersonagens) {
-                    fundosPersonagens = data.fundosPersonagens;
-                }
-                if (Array.isArray(data.colecoesFavoritas)) {
-                    colecoesFavoritas = data.colecoesFavoritas;
-                }
+                if (data.fundosPersonagens) fundosPersonagens = data.fundosPersonagens;
+                if (Array.isArray(data.colecoesFavoritas)) colecoesFavoritas = data.colecoesFavoritas;
                 
                 for (const sheetName of Object.keys(database)) {
                     await saveData(sheetName);
@@ -970,7 +1050,7 @@ window.importarBackup = function(event) {
             }
         } catch (err) {
             console.error(err);
-            alert("Erro ao ler o arquivo de backup. Verifique se é um arquivo JSON válido.");
+            alert("Erro ao ler o arquivo de backup.");
         }
     };
     reader.readAsText(file);
@@ -1004,7 +1084,6 @@ window.exportToPDF = function() {
 
 window.toggleDarkMode = function() {
     const root = document.documentElement;
-    
     if (root.classList.contains('dark-mode')) {
         root.classList.remove('dark-mode');
         root.classList.add('light-mode');

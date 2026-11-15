@@ -71,9 +71,40 @@
                 <select id="targetSheetSelect" style="display: none;" title="Escolha em qual coleção salvar">
                     <!-- Preenchido via JS quando estiver na visão "Todas as Coleções" -->
                 </select>
-                <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
-                <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)">
-                <input type="text" id="serie" placeholder="Série/Fase (ex: 1ª Série)">
+
+                <!-- Universo com Datalist -->
+                <input type="text" id="universo" list="universosList" placeholder="Universo (ex: Marvel)">
+                <datalist id="universosList">
+                    <option value="Mauricio de Sousa">
+                    <option value="Marvel">
+                    <option value="DC">
+                    <option value="Disney">
+                </datalist>
+
+                <!-- Editora com Datalist -->
+                <input type="text" id="editora" list="editorasList" placeholder="Editora (ex: Abril)" required>
+                <datalist id="editorasList">
+                    <option value="Abril">
+                    <option value="Globo">
+                    <option value="Panini">
+                    <option value="Culturama">
+                </datalist>
+
+                <!-- Categoria com Datalist -->
+                <input type="text" id="categoria" list="categoriasList" placeholder="Categoria (ex: Almanaque)">
+                <datalist id="categoriasList">
+                    <option value="Almanaque">
+                    <option value="Gibi Mensal">
+                    <option value="Edição Especial">
+                </datalist>
+
+                <!-- Série/Fase com Datalist -->
+                <input type="text" id="serie" list="seriesList" placeholder="Série/Fase (ex: 1ª Série)">
+                <datalist id="seriesList">
+                    <option value="1ª Série">
+                    <option value="2ª Série">
+                </datalist>
+
                 <input type="number" id="numero" placeholder="Número (ex: 1)" required>
                 <input type="text" id="data" placeholder="Mês/Ano (ex: Jan/1980)">
                 <input type="text" id="estado" placeholder="Estado (ex: Bom)">
@@ -124,9 +155,15 @@
             <!-- Filtros e Busca -->
             <div class="filter-bar no-pdf">
                 <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="🔍 Buscar por coleção, editora, nº..." oninput="window.renderTable()">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar por coleção, universo, editora..." oninput="window.renderTable()">
                 </div>
                 <div class="filters-group">
+                    <div class="category-filter">
+                        <label for="universeFilter">🌍 Universo:</label>
+                        <select id="universeFilter" onchange="window.renderTable()">
+                            <option value="TODOS">Todos os Universos</option>
+                        </select>
+                    </div>
                     <div class="category-filter">
                         <label for="favFilter">⭐ Favoritos:</label>
                         <select id="favFilter" onchange="window.renderTable()">
@@ -135,7 +172,7 @@
                         </select>
                     </div>
                     <div class="category-filter">
-                        <label for="readFilter">📖 Status: </label>
+                        <label for="readFilter">📖 Status:</label>
                         <select id="readFilter" onchange="window.renderTable()">
                             <option value="TODOS">Todos</option>
                             <option value="LIDOS">Lidos</option>
@@ -159,6 +196,7 @@
                             <th class="status-col sortable-th" onclick="window.setSort('status')" title="Ordenar por Lido / Favorito">STATUS <span id="sortIcon_status" class="sort-icon"></span></th>
                             <th>CAPA</th>
                             <th class="sortable-th" onclick="window.setSort('colecao')" title="Ordenar por Coleção">COLEÇÃO <span id="sortIcon_colecao" class="sort-icon"></span></th>
+                            <th class="sortable-th" onclick="window.setSort('universo')" title="Ordenar por Universo">UNIVERSO <span id="sortIcon_universo" class="sort-icon"></span></th>
                             <th class="sortable-th" onclick="window.setSort('numero')" title="Ordenar por Número">Nº <span id="sortIcon_numero" class="sort-icon">▲</span></th>
                             <th class="sortable-th" onclick="window.setSort('editora')" title="Ordenar por Editora">EDITORA <span id="sortIcon_editora" class="sort-icon"></span></th>
                             <th class="sortable-th" onclick="window.setSort('categoria')" title="Ordenar por Categoria">CATEGORIA <span id="sortIcon_categoria" class="sort-icon"></span></th>
