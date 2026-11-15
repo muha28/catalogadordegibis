@@ -42,16 +42,18 @@ setPersistence(auth, browserLocalPersistence).catch(console.error);
 const ALL_SHEETS_KEY = "__TODOS__";
 
 let fundosPersonagens = { "default": "" };
+let colecoesFavoritas = [];
 let database = {};
-let currentSheet = "";
+let currentSheet = ALL_SHEETS_KEY;
 let editingId = null;
 let editingOriginSheet = null;
 let currentUser = null;
+let isFirstLoad = true;
 
 // Estado de ordenação das colunas
 let sortState = {
     column: "numero",
-    direction: "asc" // "asc" ou "desc"
+    direction: "asc"
 };
 
 function imageToBase64(file, maxWidth = 220) {
@@ -144,7 +146,8 @@ async function saveUserMeta() {
     if (!currentUser) return;
     try {
         await setDoc(doc(db, "users", currentUser.uid), {
-            fundosPersonagens: fundosPersonagens
+            fundosPersonagens: fundosPersonagens,
+            colecoesFavoritas: colecoesFavoritas
         }, { merge: true });
     } catch (err) {
         console.error("Erro ao salvar metadados:", err);
@@ -180,6 +183,7 @@ async function loadUserData() {
     try {
         database = {};
         fundosPersonagens = { "default": "" };
+        colecoesFavoritas = [];
 
         const userDocRef = doc(db, "users", currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
@@ -187,6 +191,7 @@ async function loadUserData() {
         if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
             fundosPersonagens = userData.fundosPersonagens || { "default": "" };
+            colecoesFavoritas = Array.isArray(userData.colecoesFavoritas) ? userData.colecoesFavoritas : [];
         }
 
         const colecoesRef = collection(db, "users", currentUser.uid, "colecoes");
@@ -226,14 +231,24 @@ async function saveData(sheetName = currentSheet) {
 }
 
 function init() { 
+    // Garante que toda vez que fechar e abrir o app/site, inicia em "Todas as Coleções"
+    if (isFirstLoad) {
+        if (!sessionStorage.getItem('app_started')) {
+            currentSheet = ALL_SHEETS_KEY;
+            sessionStorage.setItem('app_started', 'true');
+        }
+        isFirstLoad = false;
+    }
+
     const sheets = Object.keys(database);
     if (sheets.length === 0) {
         database["Minha Coleção"] = [];
         currentSheet = "Minha Coleção";
         saveData(currentSheet);
     } else if (currentSheet !== ALL_SHEETS_KEY && !database[currentSheet]) {
-        currentSheet = sheets[0];
+        currentSheet = ALL_SHEETS_KEY;
     }
+
     editingId = null;
     editingOriginSheet = null;
     updateSheetDropdown(); 
@@ -246,30 +261,50 @@ function updateSheetDropdown() {
     const select = document.getElementById('sheetSelect');
     const targetSelect = document.getElementById('targetSheetSelect');
     const btnDeleteSheet = document.getElementById('btnDeleteSheet');
+    const btnFavCollection = document.getElementById('btnFavCollection');
     if (!select) return;
 
     select.innerHTML = '';
 
-    // Opção especial para exibir todos os personagens
+    // Opção especial para exibir todas as coleções
     const allOption = document.createElement('option');
     allOption.value = ALL_SHEETS_KEY;
     allOption.textContent = "🌟 Todas as Coleções";
     if (currentSheet === ALL_SHEETS_KEY) allOption.selected = true;
     select.appendChild(allOption);
 
-    const sortedSheets = Object.keys(database).sort((a, b) => 
-        a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
-    );
+    // Ordena coleções: Favoritas primeiro (alfabética), depois não favoritas (alfabética)
+    const sortedSheets = Object.keys(database).sort((a, b) => {
+        const aFav = colecoesFavoritas.includes(a);
+        const bFav = colecoesFavoritas.includes(b);
+        if (aFav && !bFav) return -1;
+        if (!aFav && bFav) return 1;
+        return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
+    });
 
     sortedSheets.forEach(sheet => {
         const option = document.createElement('option');
         option.value = sheet; 
-        option.textContent = sheet;
+        const isFav = colecoesFavoritas.includes(sheet);
+        option.textContent = isFav ? `⭐ ${sheet}` : sheet;
         if (sheet === currentSheet) option.selected = true;
         select.appendChild(option);
     });
 
-    // Sincroniza seletor de destino no formulário quando estiver em "Todos os Personagens"
+    // Sincroniza botão estrela da coleção atual
+    if (btnFavCollection) {
+        if (currentSheet === ALL_SHEETS_KEY) {
+            btnFavCollection.style.display = 'none';
+        } else {
+            btnFavCollection.style.display = 'inline-block';
+            const isCurrentFav = colecoesFavoritas.includes(currentSheet);
+            btnFavCollection.textContent = isCurrentFav ? '★' : '☆';
+            btnFavCollection.className = `btn-fav-star collection-star-btn ${isCurrentFav ? 'is-fav' : ''}`;
+            btnFavCollection.title = isCurrentFav ? 'Remover coleção dos favoritos' : 'Favoritar esta coleção';
+        }
+    }
+
+    // Sincroniza seletor de destino no formulário quando estiver em "Todas as Coleções"
     if (targetSelect) {
         targetSelect.innerHTML = '';
         sortedSheets.forEach(sheet => {
@@ -287,11 +322,25 @@ function updateSheetDropdown() {
 
     const titleEl = document.getElementById('currentSheetTitle');
     if (titleEl) {
-        titleEl.innerText = currentSheet === ALL_SHEETS_KEY
-            ? "COLEÇÃO: TODOS OS PERSONAGENS"
-            : "COLEÇÃO: " + currentSheet.toUpperCase();
+        const isFavTitle = currentSheet !== ALL_SHEETS_KEY && colecoesFavoritas.includes(currentSheet);
+        titleEl.innerHTML = currentSheet === ALL_SHEETS_KEY
+            ? "COLEÇÃO: TODAS AS COLEÇÕES"
+            : `COLEÇÃO: ${currentSheet.toUpperCase()} ${isFavTitle ? '⭐' : ''}`;
     }
 }
+
+window.toggleCurrentSheetFavorite = async function() {
+    if (currentSheet === ALL_SHEETS_KEY) return;
+    const index = colecoesFavoritas.indexOf(currentSheet);
+    if (index > -1) {
+        colecoesFavoritas.splice(index, 1);
+    } else {
+        colecoesFavoritas.push(currentSheet);
+    }
+    await saveUserMeta();
+    updateSheetDropdown();
+    renderTable();
+};
 
 function updateCategoryFilterOptions() {
     const filterSelect = document.getElementById('categoryFilter');
@@ -324,7 +373,7 @@ function updateCategoryFilterOptions() {
 }
 
 window.createNewSheet = async function() {
-    const name = prompt("Nome do Personagem/Lista:");
+    const name = prompt("Nome da Coleção:");
     if (name && name.trim() !== "") {
         const cleanName = name.trim();
         if (!database[cleanName]) {
@@ -333,23 +382,25 @@ window.createNewSheet = async function() {
             await saveData(cleanName); 
             init();
         } else { 
-            alert("Esta lista já existe!"); 
+            alert("Esta coleção já existe!"); 
         }
     }
 };
 
 window.deleteCurrentSheet = async function() {
     if (currentSheet === ALL_SHEETS_KEY) return;
-    if (confirm(`Tem certeza que deseja excluir a lista "${currentSheet}"?`)) {
+    if (confirm(`Tem certeza que deseja excluir a coleção "${currentSheet}"?`)) {
         const sheetToDelete = currentSheet;
         delete database[sheetToDelete];
         delete fundosPersonagens[sheetToDelete];
         
+        const favIdx = colecoesFavoritas.indexOf(sheetToDelete);
+        if (favIdx > -1) colecoesFavoritas.splice(favIdx, 1);
+
         await deleteSheetFromFirestore(sheetToDelete);
         await saveUserMeta();
 
-        const remaining = Object.keys(database);
-        currentSheet = remaining.length > 0 ? remaining[0] : "";
+        currentSheet = ALL_SHEETS_KEY;
         init();
     }
 };
@@ -374,7 +425,7 @@ window.addGibi = async function(event) {
         : currentSheet;
 
     if (!targetSheet) {
-        alert("Selecione ou crie uma lista de personagem primeiro.");
+        alert("Selecione ou crie uma coleção primeiro.");
         return;
     }
 
@@ -573,7 +624,7 @@ window.setSort = function(column) {
 };
 
 function updateSortIcons() {
-    const cols = ["status", "personagem", "numero", "editora", "categoria", "serie", "data", "estado"];
+    const cols = ["status", "colecao", "numero", "editora", "categoria", "serie", "data", "estado"];
     cols.forEach(col => {
         const iconEl = document.getElementById(`sortIcon_${col}`);
         if (iconEl) {
@@ -595,13 +646,12 @@ function sortItems(items) {
             return ((a.numero || 0) - (b.numero || 0)) * dir;
         }
         if (col === "status") {
-            // Prioriza favoritos e depois lidos
             const scoreA = (a.favorito ? 2 : 0) + (a.lido ? 1 : 0);
             const scoreB = (b.favorito ? 2 : 0) + (b.lido ? 1 : 0);
             if (scoreA !== scoreB) return (scoreA - scoreB) * dir;
             return (a.numero || 0) - (b.numero || 0);
         }
-        if (col === "personagem") {
+        if (col === "colecao") {
             const cmp = (a._originSheet || "").localeCompare(b._originSheet || "", 'pt-BR', { sensitivity: 'base' });
             return cmp !== 0 ? cmp * dir : (a.numero || 0) - (b.numero || 0);
         }
@@ -867,7 +917,7 @@ window.exportarBackup = function() {
         return;
     }
 
-    const backupData = JSON.stringify({ database, fundosPersonagens }, null, 2);
+    const backupData = JSON.stringify({ database, fundosPersonagens, colecoesFavoritas }, null, 2);
     const blob = new Blob([backupData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
 
@@ -903,17 +953,18 @@ window.importarBackup = function(event) {
                 if (data.fundosPersonagens) {
                     fundosPersonagens = data.fundosPersonagens;
                 }
+                if (Array.isArray(data.colecoesFavoritas)) {
+                    colecoesFavoritas = data.colecoesFavoritas;
+                }
                 
                 for (const sheetName of Object.keys(database)) {
                     await saveData(sheetName);
                 }
                 await saveUserMeta();
 
-                const sheets = Object.keys(database);
-                currentSheet = sheets.length > 0 ? sheets[0] : "";
-
+                currentSheet = ALL_SHEETS_KEY;
                 init();
-                alert("Backup de TODAS as listas foi restaurado com sucesso!");
+                alert("Backup de TODAS as coleções foi restaurado com sucesso!");
             } else {
                 alert("Arquivo de backup inválido. A chave 'database' não foi encontrada.");
             }
@@ -931,7 +982,7 @@ window.exportToPDF = function() {
     
     actionCols.forEach(el => el.style.display = 'none');
 
-    const pdfName = currentSheet === ALL_SHEETS_KEY ? "Colecao_Completa" : `Colecao_${currentSheet}`;
+    const pdfName = currentSheet === ALL_SHEETS_KEY ? "Todas_As_Colecoes" : `Colecao_${currentSheet}`;
 
     const opt = { 
         margin: 8, 

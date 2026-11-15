@@ -453,6 +453,27 @@ th.sortable-th:hover {
     color: #3b82f6;
 }
 
+.collection-star-btn {
+    background: none;
+    border: none;
+    font-size: 1.35rem;
+    cursor: pointer;
+    padding: 0 4px;
+    color: #94a3b8;
+    line-height: 1;
+    transition: transform 0.15s ease, color 0.15s ease;
+    vertical-align: middle;
+}
+
+.collection-star-btn:hover {
+    transform: scale(1.2);
+}
+
+.collection-star-btn.is-fav {
+    color: #f59e0b;
+    text-shadow: 0 0 6px rgba(245, 158, 11, 0.35);
+}
+
 /* Coluna de Status (Lido + Estrela de Favorito) */
 .status-col, .status-cell {
     width: 82px;

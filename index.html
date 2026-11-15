@@ -42,6 +42,7 @@
             <div class="main-controls">
                 <label for="sheetSelect"><strong>Coleção:</strong></label>
                 <select id="sheetSelect" onchange="window.changeSheet()"></select>
+                <button type="button" id="btnFavCollection" class="btn-fav-star collection-star-btn" onclick="window.toggleCurrentSheetFavorite()" title="Favoritar esta coleção" style="display:none;">☆</button>
 
                 <button type="button" class="btn-action" onclick="window.createNewSheet()">+ Nova Lista</button>
                 <button type="button" class="btn-delete-sheet" id="btnDeleteSheet" onclick="window.deleteCurrentSheet()">Excluir Lista</button>
@@ -67,8 +68,8 @@
         <!-- Formulário para Adicionar Novo Gibi -->
         <form id="addGibiForm" class="gibi-form no-pdf" onsubmit="window.addGibi(event)">
             <div class="form-grid">
-                <select id="targetSheetSelect" style="display: none;" title="Escolha em qual personagem salvar">
-                    <!-- Preenchido via JS quando estiver na visão "Todos os Personagens" -->
+                <select id="targetSheetSelect" style="display: none;" title="Escolha em qual coleção salvar">
+                    <!-- Preenchido via JS quando estiver na visão "Todas as Coleções" -->
                 </select>
                 <input type="text" id="editora" placeholder="Editora (ex: Abril)" required>
                 <input type="text" id="categoria" placeholder="Categoria (ex: Almanaque)">
@@ -102,10 +103,10 @@
             <!-- Título e Contadores da Coleção Atual -->
             <div class="collection-header">
                 <div class="collection-header-content">
-                    <h2 id="currentSheetTitle">COLEÇÃO: SELECIONE UM PERSONAGEM</h2>
+                    <h2 id="currentSheetTitle">COLEÇÃO: TODAS AS COLEÇÕES</h2>
                     <div class="collection-counters">
                         <span id="counterCurrentSheet" class="counter-badge">
-                            Gibis nesta coleção: 0
+                            Exibindo: 0
                         </span>
                         <span id="counterReadSheet" class="counter-badge">
                             Lidos: 0/0 (0%)
@@ -123,7 +124,7 @@
             <!-- Filtros e Busca -->
             <div class="filter-bar no-pdf">
                 <div class="search-box">
-                    <input type="text" id="searchInput" placeholder="🔍 Buscar por personagem, editora, nº..." oninput="window.renderTable()">
+                    <input type="text" id="searchInput" placeholder="🔍 Buscar por coleção, editora, nº..." oninput="window.renderTable()">
                 </div>
                 <div class="filters-group">
                     <div class="category-filter">
@@ -134,7 +135,7 @@
                         </select>
                     </div>
                     <div class="category-filter">
-                        <label for="readFilter">📖 Leitura:</label>
+                        <label for="readFilter">📖 Status: </label>
                         <select id="readFilter" onchange="window.renderTable()">
                             <option value="TODOS">Todos</option>
                             <option value="LIDOS">Lidos</option>
@@ -157,7 +158,7 @@
                         <tr>
                             <th class="status-col sortable-th" onclick="window.setSort('status')" title="Ordenar por Lido / Favorito">STATUS <span id="sortIcon_status" class="sort-icon"></span></th>
                             <th>CAPA</th>
-                            <th class="sortable-th" onclick="window.setSort('personagem')" title="Ordenar por Personagem">PERSONAGEM <span id="sortIcon_personagem" class="sort-icon"></span></th>
+                            <th class="sortable-th" onclick="window.setSort('colecao')" title="Ordenar por Coleção">COLEÇÃO <span id="sortIcon_colecao" class="sort-icon"></span></th>
                             <th class="sortable-th" onclick="window.setSort('numero')" title="Ordenar por Número">Nº <span id="sortIcon_numero" class="sort-icon">▲</span></th>
                             <th class="sortable-th" onclick="window.setSort('editora')" title="Ordenar por Editora">EDITORA <span id="sortIcon_editora" class="sort-icon"></span></th>
                             <th class="sortable-th" onclick="window.setSort('categoria')" title="Ordenar por Categoria">CATEGORIA <span id="sortIcon_categoria" class="sort-icon"></span></th>
