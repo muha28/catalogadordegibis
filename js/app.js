@@ -46,7 +46,7 @@ setPersistence(auth, browserLocalPersistence).catch(console.error);
 let fundosPersonagens = { "default": "" };
 let database = {};
 let currentSheet = "";
-let editingId = null; // Alterado de editingIndex para editingId para garantir unicidade e evitar conflitos cruzados
+let editingId = null;
 let currentUser = null;
 
 /**
@@ -186,7 +186,6 @@ async function loadUserData() {
         database = {};
         fundosPersonagens = { "default": "" };
 
-        // Carrega apenas os metadados (como os fundos dos personagens)
         const userDocRef = doc(db, "users", currentUser.uid);
         const userDocSnap = await getDoc(userDocRef);
 
@@ -195,7 +194,6 @@ async function loadUserData() {
             fundosPersonagens = userData.fundosPersonagens || { "default": "" };
         }
 
-        // Carrega as coleções diretamente da subcoleção de forma limpa e segura
         const colecoesRef = collection(db, "users", currentUser.uid, "colecoes");
         const querySnapshot = await getDocs(colecoesRef);
 
@@ -207,6 +205,7 @@ async function loadUserData() {
                         if (!gibi.id) {
                             gibi.id = '_' + Math.random().toString(36).substr(2, 9);
                         }
+                        gibi.lido = Boolean(gibi.lido);
                     });
                     database[data.nome] = data.itens;
                 }
@@ -345,6 +344,7 @@ window.addGibi = async function(event) {
 
     try {
         const fileInput = document.getElementById('capaInput');
+        const lidoInput = document.getElementById('lidoInput');
         let capaURL = "";
 
         if (fileInput && fileInput.files && fileInput.files[0]) {
@@ -356,7 +356,8 @@ window.addGibi = async function(event) {
         }
 
         database[currentSheet].push({
-            id: '_' + Math.random().toString(36).substr(2, 9), 
+            id: '_' + Math.random().toString(36).substr(2, 9),
+            lido: lidoInput ? lidoInput.checked : false,
             capa: capaURL,
             editora: document.getElementById('editora').value.trim(),
             categoria: document.getElementById('categoria').value.trim(),
@@ -376,9 +377,22 @@ window.addGibi = async function(event) {
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = submitBtn.dataset.originalHtml || 'Adicionar';
+            submitBtn.innerHTML = submitBtn.dataset.originalHtml || '+ Adicionar À Lista';
         }
     }
+};
+
+// Alterna status de leitura com 1 clique direto na tabela
+window.toggleLidoInSheet = async function(sheetName, gibiId, isChecked) {
+    const targetSheet = sheetName || currentSheet;
+    if (!database[targetSheet]) return;
+
+    const item = database[targetSheet].find(g => g.id === gibiId);
+    if (!item) return;
+
+    item.lido = Boolean(isChecked);
+    renderTable();
+    await saveData(targetSheet);
 };
 
 window.deleteGibi = async function(index) {
@@ -398,8 +412,6 @@ window.cancelEdit = function() {
 
 window.saveEdit = async function(sheetName, gibiId) {
     const targetSheet = sheetName || currentSheet;
-    
-    // Busca EXATA pelo ID do gibi, evitando qualquer problema de índice cruzado
     const itemIndex = database[targetSheet].findIndex(item => item.id === gibiId);
 
     if (itemIndex === -1) {
@@ -408,6 +420,7 @@ window.saveEdit = async function(sheetName, gibiId) {
     }
 
     const fileInput = document.getElementById(`editCapa_${gibiId}`);
+    const editLidoEl = document.getElementById(`editLido_${gibiId}`);
     let capaURL = database[targetSheet][itemIndex].capa || "";
 
     if (fileInput && fileInput.files && fileInput.files[0]) {
@@ -419,7 +432,8 @@ window.saveEdit = async function(sheetName, gibiId) {
     }
 
     database[targetSheet][itemIndex] = {
-        id: gibiId, 
+        id: gibiId,
+        lido: editLidoEl ? editLidoEl.checked : Boolean(database[targetSheet][itemIndex].lido),
         capa: capaURL,
         numero: parseInt(document.getElementById(`editNumero_${gibiId}`).value) || 0,
         editora: document.getElementById(`editEditora_${gibiId}`).value.trim(),
@@ -473,7 +487,9 @@ window.deleteGibiInSheet = async function(sheetName, index) {
 };
 
 function updateCounters(renderedCount = 0, isGlobal = false) {
-    const totalCurrentSheet = database[currentSheet] ? database[currentSheet].length : 0;
+    const currentList = database[currentSheet] || [];
+    const totalCurrentSheet = currentList.length;
+    const readCurrentSheet = currentList.filter(item => item.lido).length;
     const totalAllSheets = Object.values(database).reduce((acc, sheet) => acc + (Array.isArray(sheet) ? sheet.length : 0), 0);
 
     const listCounterEl = document.getElementById('listCounter') || document.getElementById('counterCurrentSheet');
@@ -481,14 +497,17 @@ function updateCounters(renderedCount = 0, isGlobal = false) {
         if (isGlobal) {
             listCounterEl.innerText = `${renderedCount} encontrado(s)`;
         } else {
-            // Mantém a fraseologia correta unindo o texto descritivo ao valor calculado
             listCounterEl.innerText = `Gibis nesta coleção: ${renderedCount} (de ${totalCurrentSheet})`;
         }
     }
 
+    const readCounterEl = document.getElementById('counterReadSheet');
+    if (readCounterEl) {
+        readCounterEl.innerText = `Lidos: ${readCurrentSheet}/${totalCurrentSheet}`;
+    }
+
     const totalCounterEl = document.getElementById('totalCounter') || document.getElementById('counterTotal');
     if (totalCounterEl) {
-        // Mantém a fraseologia correta para o total geral
         totalCounterEl.innerText = `Total Geral de Gibis: ${totalAllSheets}`;
     }
 }
@@ -498,6 +517,7 @@ window.renderTable = function() {
     if (!tbody) return;
 
     const selectedFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : "TODAS";
+    const selectedReadFilter = document.getElementById('readFilter') ? document.getElementById('readFilter').value : "TODOS";
     const searchInput = document.getElementById('searchInput');
     const rawSearch = searchInput ? searchInput.value.trim() : "";
 
@@ -506,8 +526,13 @@ window.renderTable = function() {
     let itemsToRender = [];
     const isGlobalSearch = rawSearch !== "";
 
-    // Função auxiliar para remover acentos e converter para minúsculas
     const normalizeStr = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+    const matchesReadStatus = (item) => {
+        if (selectedReadFilter === "LIDOS") return Boolean(item.lido);
+        if (selectedReadFilter === "NAO_LIDOS") return !item.lido;
+        return true;
+    };
 
     if (isGlobalSearch) {
         const terms = rawSearch.split(/\s+/).filter(Boolean).map(normalizeStr);
@@ -527,12 +552,10 @@ window.renderTable = function() {
                     ].join(" ");
 
                     const itemContent = normalizeStr(rawContent);
-
-                    // .every garante que todos os termos digitados precisem estar presentes (ex: "monica 56")
                     const matchesSearch = terms.every(term => itemContent.includes(term));
                     const matchesCategory = selectedFilter === "TODAS" || (item.categoria && item.categoria.trim() === selectedFilter);
 
-                    if (matchesSearch && matchesCategory) {
+                    if (matchesSearch && matchesCategory && matchesReadStatus(item)) {
                         itemsToRender.push({ ...item, _originSheet: sheetName });
                     }
                 });
@@ -550,6 +573,7 @@ window.renderTable = function() {
             currentItems = currentItems.filter(item => item.categoria && item.categoria.trim() === selectedFilter);
         }
 
+        currentItems = currentItems.filter(matchesReadStatus);
         currentItems.sort((a, b) => a.numero - b.numero);
 
         itemsToRender = currentItems.map(item => ({ ...item, _originSheet: currentSheet }));
@@ -559,6 +583,7 @@ window.renderTable = function() {
         const originSheet = item._originSheet;
         const indexNoBanco = database[originSheet].findIndex(dbItem => dbItem.id === item.id);
         const tr = document.createElement('tr');
+        if (item.lido) tr.classList.add('gibi-lido');
 
         if (!item.id) {
             item.id = '_' + Math.random().toString(36).substr(2, 9);
@@ -566,6 +591,7 @@ window.renderTable = function() {
 
         if (editingId === item.id && currentSheet === originSheet) {
             tr.innerHTML = `
+                <td class="read-cell"><input type="checkbox" class="read-checkbox" id="editLido_${item.id}" ${item.lido ? 'checked' : ''}></td>
                 <td class="capa-cell"><input type="file" id="editCapa_${item.id}" accept="image/*" style="font-size:10px; width:70px;"></td>
                 <td><strong>${originSheet}</strong></td>
                 <td><input type="number" id="editNumero_${item.id}"></td>
@@ -597,6 +623,16 @@ window.renderTable = function() {
             }, 0);
 
         } else {
+            const tdRead = document.createElement('td');
+            tdRead.className = 'read-cell';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'read-checkbox';
+            checkbox.checked = Boolean(item.lido);
+            checkbox.title = item.lido ? 'Marcar como não lido' : 'Marcar como lido';
+            checkbox.onchange = (e) => toggleLidoInSheet(originSheet, item.id, e.target.checked);
+            tdRead.appendChild(checkbox);
+
             const tdCapa = document.createElement('td');
             tdCapa.className = 'capa-cell';
 
@@ -644,6 +680,7 @@ window.renderTable = function() {
                 <button class="btn-delete" onclick="deleteGibiInSheet('${originSheet}', ${indexNoBanco})">Excluir</button>
             `;
 
+            tr.appendChild(tdRead);
             tr.appendChild(tdCapa);
             tr.appendChild(tdPersonagem);
             tr.appendChild(tdNumero);
@@ -692,6 +729,14 @@ window.importarBackup = function(event) {
             const data = JSON.parse(e.target.result);
             if (data && data.database) {
                 database = data.database;
+                Object.keys(database).forEach(sheet => {
+                    if (Array.isArray(database[sheet])) {
+                        database[sheet].forEach(gibi => {
+                            gibi.lido = Boolean(gibi.lido);
+                        });
+                    }
+                });
+
                 if (data.fundosPersonagens) {
                     fundosPersonagens = data.fundosPersonagens;
                 }
@@ -742,11 +787,10 @@ window.exportToPDF = function() {
     }
 };
 
-// Função única para alternar o tema (cicla entre: Automático -> Escuro -> Claro -> Automático)
+// Função única para alternar o tema
 window.toggleDarkMode = function() {
     const root = document.documentElement;
     
-    // Alterna diretamente entre 'dark-mode' e 'light-mode'
     if (root.classList.contains('dark-mode')) {
         root.classList.remove('dark-mode');
         root.classList.add('light-mode');
