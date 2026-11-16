@@ -407,8 +407,8 @@ button {
 .form-control {
     width: 100%;
     height: 38px;
-    background-color: var(--input-bg, #111827);
-    border: 1px solid var(--border-color, #374151);
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-input);
     color: var(--text-color);
     font-size: 0.9rem;
     padding: 0 10px;
@@ -422,6 +422,13 @@ button {
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
+.form-control:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    background-color: var(--bg-header);
+}
+
+/* Bloco unificado para Mês/Ano seguindo perfeitamente o tema ativo */
 .month-year-container {
     display: flex;
     gap: 8px;
@@ -431,15 +438,14 @@ button {
 .month-year-container select,
 .month-year-container input {
     height: 38px;
-    background-color: var(--input-bg, #111827);
-    border: 1px solid var(--border-color, #374151);
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-input);
     color: var(--text-color);
     font-size: 0.9rem;
     padding: 0 10px;
     border-radius: 6px;
     box-sizing: border-box;
     outline: none;
-    width: 100%;
 }
 
 .month-year-container select:focus,
@@ -703,10 +709,4 @@ button:disabled {
         box-sizing: border-box;
         font-size: 0.85rem;
     }
-}
-
-.form-control:disabled {
-    opacity: 0.75;
-    cursor: not-allowed;
-    background-color: var(--bg-header);
 }
