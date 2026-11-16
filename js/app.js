@@ -1,3 +1,9 @@
+/**
+ * @file app.js
+ * @description Lógica principal da PWA Minha Gibiteca. Gerencia autenticação Google via Firebase,
+ * persistência em Firestore, renderização dinâmica de tabelas, coleções, filtros, ordenação e formulário unificado.
+ */
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
     getAuth, 
@@ -12,8 +18,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// Verifica se está rodando em ambiente local ou de produção
 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
+// Configurações do Firebase correspondentes ao ambiente
 const firebaseConfig = isLocal 
     ? {
         apiKey: "AIzaSyArZvRam5pfYEIyrYeGFM5-VYGg0tpGJVE",
@@ -33,14 +41,18 @@ const firebaseConfig = isLocal
         appId: "1:1069619452025:web:82d0743ae68029df595ca8"
       };
 
+// Inicialização do Firebase e serviços de Auth/Firestore
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Garante persistência local da sessão do usuário no navegador
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
+// Chave constante que representa a visualização agregada de todas as coleções
 const ALL_SHEETS_KEY = "__TODOS__";
 
+// Estado global da aplicação
 let fundosPersonagens = { "default": "" };
 let colecoesFavoritas = [];
 let database = {};
@@ -50,12 +62,30 @@ let editingOriginSheet = null;
 let currentUser = null;
 let isFirstLoad = true;
 
-// Estado de ordenação das colunas
+// Estado padrão de ordenação da tabela
 let sortState = {
     column: "numero",
     direction: "asc"
 };
 
+// Mapeamentos de meses para conversão do seletor visual de Mês/Ano
+const mesesMap = {
+    "01": "Janeiro", "02": "Fevereiro", "03": "Março", "04": "Abril",
+    "05": "Maio", "06": "Junho", "07": "Julho", "08": "Agosto",
+    "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro"
+};
+const mesesInverso = {
+    "janeiro": "01", "fevereiro": "02", "março": "03", "marco": "03", "abril": "04",
+    "maio": "05", "junho": "06", "julho": "07", "agosto": "08",
+    "setembro": "09", "outubro": "10", "novembro": "11", "dezembro": "12"
+};
+
+/**
+ * Converte arquivo de imagem da capa em string Base64 compactada em JPEG.
+ * @param {File} file - Arquivo de imagem selecionado.
+ * @param {number} maxWidth - Largura máxima permitida para otimização.
+ * @returns {Promise<string>} String Base64 da imagem.
+ */
 function imageToBase64(file, maxWidth = 220) {
     return new Promise((resolve, reject) => {
         if (!file) return resolve("");
@@ -87,6 +117,44 @@ function imageToBase64(file, maxWidth = 220) {
     });
 }
 
+/**
+ * Analisa a string de data legível (ex: "Agosto 2012") e preenche os selects de Mês e Ano.
+ */
+function parseDataToInputs(dataStr, mesElId, anoElId) {
+    const mesEl = document.getElementById(mesElId);
+    const anoEl = document.getElementById(anoElId);
+    if (!mesEl || !anoEl) return;
+    mesEl.value = "";
+    anoEl.value = "";
+    if (!dataStr) return;
+    const partes = dataStr.trim().split(/\s+/);
+    partes.forEach(parte => {
+        const pLower = parte.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (mesesInverso[pLower]) {
+            mesEl.value = mesesInverso[pLower];
+        } else if (/^\d{4}$/.test(parte)) {
+            anoEl.value = parte;
+        }
+    });
+}
+
+/**
+ * Constrói a string de data a partir dos valores dos selects de mês e ano.
+ */
+function buildDataString(mesElId, anoElId) {
+    const mesVal = document.getElementById(mesElId)?.value;
+    const anoVal = document.getElementById(anoElId)?.value.trim();
+    if (mesVal && anoVal) {
+        return `${mesesMap[mesVal]} ${anoVal}`;
+    } else if (anoVal) {
+        return anoVal;
+    } else if (mesVal) {
+        return mesesMap[mesVal];
+    }
+    return "";
+}
+
+// Trata o retorno de login via redirecionamento do Google Auth
 getRedirectResult(auth)
     .then((result) => {
         if (result && result.user) {
@@ -97,6 +165,10 @@ getRedirectResult(auth)
         console.error("Erro no retorno do redirect:", error);
     });
 
+/**
+ * Observador de estado de autenticação do Firebase.
+ * Gerencia a alternância entre a tela de login e o painel principal.
+ */
 onAuthStateChanged(auth, async (user) => {
     const loginScreen = document.getElementById('loginScreen');
     const mainApp = document.getElementById('mainApp');
@@ -104,7 +176,7 @@ onAuthStateChanged(auth, async (user) => {
 
     if (user) {
         currentUser = user;
-        if (statusEl) statusEl.innerText = `Bem vindo(a), Leitor(a): ${user.displayName || user.email} 🤓`;
+        if (statusEl) statusEl.innerText = `Bem-vindo(a), Leitor(a): ${user.displayName || user.email} 🤓`;
         if (loginScreen) loginScreen.style.display = 'none';
         if (mainApp) mainApp.style.display = 'block';
 
@@ -118,6 +190,9 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+/**
+ * Executa o fluxo de autenticação com o Google.
+ */
 window.loginWithGoogle = async function() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
@@ -138,10 +213,16 @@ window.loginWithGoogle = async function() {
     }
 };
 
+/**
+ * Encerra a sessão atual do usuário no Firebase Auth.
+ */
 window.logout = function() {
     signOut(auth);
 };
 
+/**
+ * Salva metadados do usuário (coleções favoritas) no Firestore.
+ */
 async function saveUserMeta() {
     if (!currentUser) return;
     try {
@@ -154,6 +235,9 @@ async function saveUserMeta() {
     }
 }
 
+/**
+ * Salva uma coleção específica e seus gibis no Firestore.
+ */
 async function saveSheetToFirestore(sheetName) {
     if (!currentUser || sheetName === ALL_SHEETS_KEY) return;
     try {
@@ -169,6 +253,9 @@ async function saveSheetToFirestore(sheetName) {
     }
 }
 
+/**
+ * Remove uma coleção do Firestore.
+ */
 async function deleteSheetFromFirestore(sheetName) {
     if (!currentUser) return;
     try {
@@ -179,6 +266,9 @@ async function deleteSheetFromFirestore(sheetName) {
     }
 }
 
+/**
+ * Carrega todos os dados do usuário a partir do Firestore.
+ */
 async function loadUserData() {
     try {
         database = {};
@@ -227,12 +317,18 @@ async function loadUserData() {
     }
 }
 
+/**
+ * Persiste dados de uma coleção ativa no Firestore.
+ */
 async function saveData(sheetName = currentSheet) {
     if (sheetName && sheetName !== ALL_SHEETS_KEY) {
         await saveSheetToFirestore(sheetName);
     }
 }
 
+/**
+ * Inicializa ou reinicializa a interface e estados da aplicação.
+ */
 function init() { 
     if (isFirstLoad) {
         if (!sessionStorage.getItem('app_started')) {
@@ -260,9 +356,12 @@ function init() {
     renderTable(); 
 }
 
+/**
+ * Atualiza os seletores de coleções (topo e campo "Salvar em:" do formulário).
+ */
 function updateSheetDropdown() {
     const select = document.getElementById('sheetSelect');
-    const targetSelect = document.getElementById('targetSheetSelect');
+    const formSheetSelect = document.getElementById('selectSheet');
     const btnDeleteSheet = document.getElementById('btnDeleteSheet');
     const btnFavCollection = document.getElementById('btnFavCollection');
     if (!select) return;
@@ -292,6 +391,29 @@ function updateSheetDropdown() {
         select.appendChild(option);
     });
 
+    // Configura o campo "Salvar em:" do formulário com base na visualização atual
+    if (formSheetSelect) {
+        formSheetSelect.innerHTML = '';
+        if (currentSheet === ALL_SHEETS_KEY) {
+            // Se estiver em "Todas as Coleções", libera o select com todas as opções
+            formSheetSelect.disabled = false;
+            sortedSheets.forEach(sheet => {
+                const opt = document.createElement('option');
+                opt.value = sheet;
+                opt.textContent = sheet;
+                formSheetSelect.appendChild(opt);
+            });
+        } else {
+            // Se estiver em uma coleção específica, trava o select apenas com ela
+            formSheetSelect.disabled = true;
+            const opt = document.createElement('option');
+            opt.value = currentSheet;
+            opt.textContent = currentSheet;
+            opt.selected = true;
+            formSheetSelect.appendChild(opt);
+        }
+    }
+
     if (btnFavCollection) {
         if (currentSheet === ALL_SHEETS_KEY) {
             btnFavCollection.style.display = 'none';
@@ -302,17 +424,6 @@ function updateSheetDropdown() {
             btnFavCollection.className = `btn-fav-star collection-star-btn ${isCurrentFav ? 'is-fav' : ''}`;
             btnFavCollection.title = isCurrentFav ? 'Remover coleção dos favoritos' : 'Favoritar esta coleção';
         }
-    }
-
-    if (targetSelect) {
-        targetSelect.innerHTML = '';
-        sortedSheets.forEach(sheet => {
-            const opt = document.createElement('option');
-            opt.value = sheet;
-            opt.textContent = `Salvar em: ${sheet}`;
-            targetSelect.appendChild(opt);
-        });
-        targetSelect.style.display = currentSheet === ALL_SHEETS_KEY ? 'block' : 'none';
     }
 
     if (btnDeleteSheet) {
@@ -328,11 +439,14 @@ function updateSheetDropdown() {
     }
 }
 
+/**
+ * Atualiza os datalists para autocomplete nos inputs do formulário.
+ */
 function updateFormDatalists() {
-    const universesList = document.getElementById('universosList');
-    const editorasList = document.getElementById('editorasList');
-    const categoriasList = document.getElementById('categoriasList');
-    const seriesList = document.getElementById('seriesList');
+    const universesList = document.getElementById('listUniversos');
+    const editorasList = document.getElementById('listEditoras');
+    const categoriasList = document.getElementById('listCategorias');
+    const seriesList = document.getElementById('listSeries');
 
     const defaultUniverses = ["Mauricio de Sousa", "Marvel", "DC", "Disney"];
     const defaultEditors = ["Abril", "Globo", "Panini", "Culturama"];
@@ -375,6 +489,9 @@ function updateFormDatalists() {
     populateList(seriesList, defaultSeries, existingSeries);
 }
 
+/**
+ * Alterna o status de favorito da coleção ativa.
+ */
 window.toggleCurrentSheetFavorite = async function() {
     if (currentSheet === ALL_SHEETS_KEY) return;
     const index = colecoesFavoritas.indexOf(currentSheet);
@@ -388,6 +505,9 @@ window.toggleCurrentSheetFavorite = async function() {
     renderTable();
 };
 
+/**
+ * Atualiza os filtros de listagem na barra de ferramentas.
+ */
 function updateFilterOptions() {
     const categoryFilter = document.getElementById('categoryFilter');
     if (categoryFilter) {
@@ -430,6 +550,9 @@ function updateFilterOptions() {
     }
 }
 
+/**
+ * Cria uma nova coleção.
+ */
 window.createNewSheet = async function() {
     const name = prompt("Nome da Coleção:");
     if (name && name.trim() !== "") {
@@ -445,6 +568,9 @@ window.createNewSheet = async function() {
     }
 };
 
+/**
+ * Exclui a coleção ativa.
+ */
 window.deleteCurrentSheet = async function() {
     if (currentSheet === ALL_SHEETS_KEY) return;
     if (confirm(`Tem certeza que deseja excluir a coleção "${currentSheet}"?`)) {
@@ -463,6 +589,9 @@ window.deleteCurrentSheet = async function() {
     }
 };
 
+/**
+ * Altera a coleção ativa pelo dropdown superior.
+ */
 window.changeSheet = function() { 
     currentSheet = document.getElementById('sheetSelect').value; 
     const searchInput = document.getElementById('searchInput');
@@ -470,6 +599,9 @@ window.changeSheet = function() {
     init(); 
 };
 
+/**
+ * Adiciona um novo gibi utilizando os inputs com prefixo `input...`.
+ */
 window.addGibi = async function(event) {
     event.preventDefault();
     
@@ -477,7 +609,7 @@ window.addGibi = async function(event) {
     if (submitBtn && submitBtn.disabled) return;
 
     const targetSheet = currentSheet === ALL_SHEETS_KEY
-        ? document.getElementById('targetSheetSelect')?.value
+        ? document.getElementById('selectSheet')?.value
         : currentSheet;
 
     if (!targetSheet) {
@@ -505,10 +637,11 @@ window.addGibi = async function(event) {
             database[targetSheet] = [];
         }
 
-        const universoInput = document.getElementById('universo').value.trim();
-        const editoraInput = document.getElementById('editora').value.trim();
-        const categoriaInput = document.getElementById('categoria').value.trim();
-        const serieInput = document.getElementById('serie').value.trim();
+        const universoInput = document.getElementById('inputUniverso').value.trim();
+        const editoraInput = document.getElementById('inputEditora').value.trim();
+        const categoriaInput = document.getElementById('inputCategoria').value.trim();
+        const serieInput = document.getElementById('inputSerie').value.trim();
+        const dataFormatada = buildDataString('inputMes', 'inputAno');
 
         database[targetSheet].push({
             id: '_' + Math.random().toString(36).substr(2, 9),
@@ -519,9 +652,9 @@ window.addGibi = async function(event) {
             editora: editoraInput,
             categoria: categoriaInput,
             serie: serieInput,
-            numero: parseInt(document.getElementById('numero').value) || 0,
-            data: document.getElementById('data').value.trim(),
-            estado: document.getElementById('estado').value.trim()
+            numero: parseInt(document.getElementById('inputNumero').value) || 0,
+            data: dataFormatada,
+            estado: document.getElementById('inputEstado').value.trim()
         });
 
         await saveData(targetSheet);
@@ -529,9 +662,6 @@ window.addGibi = async function(event) {
         updateFormDatalists();
         renderTable(); 
         document.getElementById('addGibiForm').reset();
-        if (currentSheet === ALL_SHEETS_KEY && document.getElementById('targetSheetSelect')) {
-            document.getElementById('targetSheetSelect').value = targetSheet;
-        }
     } catch (err) {
         console.error("Erro ao adicionar gibi:", err);
         alert("Erro ao adicionar o gibi. Verifique o console.");
@@ -546,10 +676,8 @@ window.addGibi = async function(event) {
 window.toggleLidoInSheet = async function(sheetName, gibiId, isChecked) {
     const targetSheet = sheetName || currentSheet;
     if (!database[targetSheet]) return;
-
     const item = database[targetSheet].find(g => g.id === gibiId);
     if (!item) return;
-
     item.lido = Boolean(isChecked);
     renderTable();
     await saveData(targetSheet);
@@ -558,23 +686,24 @@ window.toggleLidoInSheet = async function(sheetName, gibiId, isChecked) {
 window.toggleFavoritoInSheet = async function(sheetName, gibiId) {
     const targetSheet = sheetName || currentSheet;
     if (!database[targetSheet]) return;
-
     const item = database[targetSheet].find(g => g.id === gibiId);
     if (!item) return;
-
     item.favorito = !item.favorito;
     renderTable();
     await saveData(targetSheet);
 };
 
+/**
+ * Duplica os dados de um gibi para novo cadastro.
+ */
 window.duplicateGibi = function(sheetName, gibiId) {
     const targetSheet = sheetName || currentSheet;
     const item = database[targetSheet]?.find(g => g.id === gibiId);
     if (!item) return;
 
     if (currentSheet === ALL_SHEETS_KEY) {
-        const targetSelect = document.getElementById('targetSheetSelect');
-        if (targetSelect) targetSelect.value = targetSheet;
+        const selectSheet = document.getElementById('selectSheet');
+        if (selectSheet) selectSheet.value = targetSheet;
     } else if (currentSheet !== targetSheet) {
         currentSheet = targetSheet;
         const select = document.getElementById('sheetSelect');
@@ -582,18 +711,18 @@ window.duplicateGibi = function(sheetName, gibiId) {
         updateFilterOptions();
     }
 
-    document.getElementById('universo').value = item.universo || 'Mauricio de Sousa';
-    document.getElementById('editora').value = item.editora || '';
-    document.getElementById('categoria').value = item.categoria || '';
-    document.getElementById('serie').value = item.serie || '';
-    document.getElementById('numero').value = '';
-    document.getElementById('data').value = item.data || '';
-    document.getElementById('estado').value = item.estado || '';
+    document.getElementById('inputUniverso').value = item.universo || 'Mauricio de Sousa';
+    document.getElementById('inputEditora').value = item.editora || '';
+    document.getElementById('inputCategoria').value = item.categoria || '';
+    document.getElementById('inputSerie').value = item.serie || '';
+    document.getElementById('inputNumero').value = '';
+    parseDataToInputs(item.data || '', 'inputMes', 'inputAno');
+    document.getElementById('inputEstado').value = item.estado || '';
     document.getElementById('lidoInput').checked = false;
     document.getElementById('favoritoInput').checked = Boolean(item.favorito);
 
     document.getElementById('addGibiForm').scrollIntoView({ behavior: 'smooth' });
-    document.getElementById('numero').focus();
+    document.getElementById('inputNumero').focus();
 };
 
 window.cancelEdit = function() { 
@@ -628,6 +757,7 @@ window.saveEdit = async function(sheetName, gibiId) {
     const newEd = document.getElementById(`editEditora_${gibiId}`).value.trim();
     const newCat = document.getElementById(`editCategoria_${gibiId}`).value.trim();
     const newSer = document.getElementById(`editSerie_${gibiId}`).value.trim();
+    const newData = buildDataString(`editMes_${gibiId}`, `editAno_${gibiId}`);
 
     database[targetSheet][itemIndex] = {
         id: gibiId,
@@ -639,7 +769,7 @@ window.saveEdit = async function(sheetName, gibiId) {
         categoria: newCat,
         serie: newSer,
         numero: parseInt(document.getElementById(`editNumero_${gibiId}`).value) || 0,
-        data: document.getElementById(`editData_${gibiId}`).value.trim(),
+        data: newData,
         estado: document.getElementById(`editEstado_${gibiId}`).value.trim()
     };
 
@@ -683,7 +813,6 @@ window.deleteGibiInSheet = async function(sheetName, index) {
     }
 };
 
-// Ordenação por colunas
 window.setSort = function(column) {
     if (sortState.column === column) {
         sortState.direction = sortState.direction === "asc" ? "desc" : "asc";
@@ -749,7 +878,7 @@ function updateCounters(renderedCount = 0, isGlobal = false, filteredItems = [])
     const totalBase = baseList.length;
     const totalAllSheets = Object.values(database).reduce((acc, sheet) => acc + (Array.isArray(sheet) ? sheet.length : 0), 0);
 
-    const listCounterEl = document.getElementById('listCounter') || document.getElementById('counterCurrentSheet');
+    const listCounterEl = document.getElementById('counterCurrentSheet');
     if (listCounterEl) {
         if (isGlobal || isAllSheets) {
             listCounterEl.innerText = `Exibindo: ${renderedCount} de ${totalBase}`;
@@ -772,7 +901,7 @@ function updateCounters(renderedCount = 0, isGlobal = false, filteredItems = [])
         favCounterEl.innerText = `⭐ Favoritos: ${favCount}`;
     }
 
-    const totalCounterEl = document.getElementById('totalCounter') || document.getElementById('counterTotal');
+    const totalCounterEl = document.getElementById('counterTotal');
     if (totalCounterEl) {
         totalCounterEl.innerText = `Total Geral de Gibis: ${totalAllSheets}`;
     }
@@ -869,12 +998,22 @@ window.renderTable = function() {
                 </td>
                 <td class="capa-cell"><input type="file" id="editCapa_${item.id}" accept="image/*" style="font-size:10px; width:70px;"></td>
                 <td><strong>${originSheet}</strong></td>
-                <td><input type="text" id="editUniverso_${item.id}" list="universosList"></td>
+                <td><input type="text" id="editUniverso_${item.id}" list="listUniversos"></td>
                 <td><input type="number" id="editNumero_${item.id}"></td>
-                <td><input type="text" id="editEditora_${item.id}" list="editorasList"></td>
-                <td><input type="text" id="editCategoria_${item.id}" list="categoriasList"></td>
-                <td><input type="text" id="editSerie_${item.id}" list="seriesList"></td>
-                <td><input type="text" id="editData_${item.id}"></td>
+                <td><input type="text" id="editEditora_${item.id}" list="listEditoras"></td>
+                <td><input type="text" id="editCategoria_${item.id}" list="listCategorias"></td>
+                <td><input type="text" id="editSerie_${item.id}" list="listSeries"></td>
+                <td>
+                    <div style="display:flex; gap:4px;">
+                        <select id="editMes_${item.id}" style="font-size:11px; padding:2px;">
+                            <option value="">Mês</option>
+                            <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option><option value="04">Abr</option>
+                            <option value="05">Mai</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option>
+                            <option value="09">Set</option><option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+                        </select>
+                        <input type="number" id="editAno_${item.id}" placeholder="Ano" style="font-size:11px; padding:2px; width:60px;">
+                    </div>
+                </td>
                 <td><input type="text" id="editEstado_${item.id}"></td>
                 <td class="actions-cell no-pdf">
                     <button class="btn-save" onclick="saveEdit('${originSheet}', '${item.id}')">Salvar</button>
@@ -888,7 +1027,6 @@ window.renderTable = function() {
                 const elCat = tr.querySelector(`#editCategoria_${item.id}`);
                 const elSer = tr.querySelector(`#editSerie_${item.id}`);
                 const elNum = tr.querySelector(`#editNumero_${item.id}`);
-                const elData = tr.querySelector(`#editData_${item.id}`);
                 const elEst = tr.querySelector(`#editEstado_${item.id}`);
 
                 if (elUniv) elUniv.value = item.universo || 'Mauricio de Sousa';
@@ -896,7 +1034,7 @@ window.renderTable = function() {
                 if (elCat) elCat.value = item.categoria || '';
                 if (elSer) elSer.value = item.serie || '';
                 if (elNum) elNum.value = item.numero;
-                if (elData) elData.value = item.data || '';
+                parseDataToInputs(item.data || '', `editMes_${item.id}`, `editAno_${item.id}`);
                 if (elEst) elEst.value = item.estado || '';
             }, 0);
 
@@ -999,17 +1137,14 @@ window.exportarBackup = function() {
         alert("Não há dados para exportar.");
         return;
     }
-
     const backupData = JSON.stringify({ database, fundosPersonagens, colecoesFavoritas }, null, 2);
     const blob = new Blob([backupData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-
     const downloadAnchor = document.createElement('a');
     downloadAnchor.href = url;
     downloadAnchor.download = `backup_completo_catalogador_${new Date().toISOString().slice(0,10)}.json`;
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
-    
     downloadAnchor.remove();
     URL.revokeObjectURL(url);
 };
@@ -1017,7 +1152,6 @@ window.exportarBackup = function() {
 window.importarBackup = function(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = async function(e) {
         try {
@@ -1033,20 +1167,17 @@ window.importarBackup = function(event) {
                         });
                     }
                 });
-
                 if (data.fundosPersonagens) fundosPersonagens = data.fundosPersonagens;
                 if (Array.isArray(data.colecoesFavoritas)) colecoesFavoritas = data.colecoesFavoritas;
-                
                 for (const sheetName of Object.keys(database)) {
                     await saveData(sheetName);
                 }
                 await saveUserMeta();
-
                 currentSheet = ALL_SHEETS_KEY;
                 init();
                 alert("Backup de TODAS as coleções foi restaurado com sucesso!");
             } else {
-                alert("Arquivo de backup inválido. A chave 'database' não foi encontrada.");
+                alert("Arquivo de backup inválido.");
             }
         } catch (err) {
             console.error(err);
@@ -1059,11 +1190,8 @@ window.importarBackup = function(event) {
 window.exportToPDF = function() {
     const element = document.getElementById('pdfContent');
     const actionCols = document.querySelectorAll('.no-pdf');
-    
     actionCols.forEach(el => el.style.display = 'none');
-
     const pdfName = currentSheet === ALL_SHEETS_KEY ? "Todas_As_Colecoes" : `Colecao_${currentSheet}`;
-
     const opt = { 
         margin: 8, 
         filename: `${pdfName}.pdf`, 
@@ -1071,7 +1199,6 @@ window.exportToPDF = function() {
         html2canvas: { scale: 2 }, 
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
     };
-
     if (window.html2pdf) {
         window.html2pdf().set(opt).from(element).save().then(() => { 
             actionCols.forEach(el => el.style.display = ''); 
