@@ -443,10 +443,10 @@ function updateSheetDropdown() {
  * Atualiza os datalists para autocomplete nos inputs do formulário.
  */
 function updateFormDatalists() {
-    const universesList = document.getElementById('listUniversos');
-    const editorasList = document.getElementById('listEditoras');
-    const categoriasList = document.getElementById('listCategorias');
-    const seriesList = document.getElementById('listSeries');
+    const universesList = document.getElementById('universesList');
+    const editorasList = document.getElementById('editorasList');
+    const categoriasList = document.getElementById('categoriasList');
+    const seriesList = document.getElementById('seriesList');
 
     const defaultUniverses = ["Mauricio de Sousa", "Marvel", "DC", "Disney"];
     const defaultEditors = ["Abril", "Globo", "Panini", "Culturama"];
@@ -608,8 +608,9 @@ window.addGibi = async function(event) {
     const submitBtn = event.target.querySelector('button[type="submit"]') || event.target.querySelector('.btn-add');
     if (submitBtn && submitBtn.disabled) return;
 
+    const formSheetSelect = document.getElementById('selectSheet');
     const targetSheet = currentSheet === ALL_SHEETS_KEY
-        ? document.getElementById('selectSheet')?.value
+        ? (formSheetSelect ? formSheetSelect.value : currentSheet)
         : currentSheet;
 
     if (!targetSheet) {
@@ -637,10 +638,12 @@ window.addGibi = async function(event) {
             database[targetSheet] = [];
         }
 
-        const universoInput = document.getElementById('inputUniverso').value.trim();
-        const editoraInput = document.getElementById('inputEditora').value.trim();
-        const categoriaInput = document.getElementById('inputCategoria').value.trim();
-        const serieInput = document.getElementById('inputSerie').value.trim();
+        const universoInput = document.getElementById('inputUniverso')?.value?.trim() || "";
+        const editoraInput = document.getElementById('inputEditora')?.value?.trim() || "";
+        const categoriaInput = document.getElementById('inputCategoria')?.value?.trim() || "";
+        const serieInput = document.getElementById('inputSerie')?.value?.trim() || "";
+        const numeroInput = parseInt(document.getElementById('inputNumero')?.value) || 0;
+        const estadoInput = document.getElementById('inputEstado')?.value?.trim() || "";
         const dataFormatada = buildDataString('inputMes', 'inputAno');
 
         database[targetSheet].push({
@@ -652,9 +655,9 @@ window.addGibi = async function(event) {
             editora: editoraInput,
             categoria: categoriaInput,
             serie: serieInput,
-            numero: parseInt(document.getElementById('inputNumero').value) || 0,
+            numero: numeroInput,
             data: dataFormatada,
-            estado: document.getElementById('inputEstado').value.trim()
+            estado: estadoInput
         });
 
         await saveData(targetSheet);
@@ -715,7 +718,7 @@ window.duplicateGibi = function(sheetName, gibiId) {
     document.getElementById('inputEditora').value = item.editora || '';
     document.getElementById('inputCategoria').value = item.categoria || '';
     document.getElementById('inputSerie').value = item.serie || '';
-    document.getElementById('inputNumero').value = '';
+    document.getElementById('inputNumero').value = item.numero !== undefined ? item.numero : '';
     parseDataToInputs(item.data || '', 'inputMes', 'inputAno');
     document.getElementById('inputEstado').value = item.estado || '';
     document.getElementById('lidoInput').checked = false;
@@ -998,11 +1001,11 @@ window.renderTable = function() {
                 </td>
                 <td class="capa-cell"><input type="file" id="editCapa_${item.id}" accept="image/*" style="font-size:10px; width:70px;"></td>
                 <td><strong>${originSheet}</strong></td>
-                <td><input type="text" id="editUniverso_${item.id}" list="listUniversos"></td>
+                <td><input type="text" id="editUniverso_${item.id}" list="universesList"></td>
                 <td><input type="number" id="editNumero_${item.id}"></td>
-                <td><input type="text" id="editEditora_${item.id}" list="listEditoras"></td>
-                <td><input type="text" id="editCategoria_${item.id}" list="listCategorias"></td>
-                <td><input type="text" id="editSerie_${item.id}" list="listSeries"></td>
+                <td><input type="text" id="editEditora_${item.id}" list="editorasList"></td>
+                <td><input type="text" id="editCategoria_${item.id}" list="categoriasList"></td>
+                <td><input type="text" id="editSerie_${item.id}" list="seriesList"></td>
                 <td>
                     <div style="display:flex; gap:4px;">
                         <select id="editMes_${item.id}" style="font-size:11px; padding:2px;">
