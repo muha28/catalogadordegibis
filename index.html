@@ -5,31 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minha Gibiteca 📚</title>
 
-    <!-- Favicon / Ícone da aba -->
+    <!-- Favicon / Ícone da aba do navegador -->
     <link rel="icon" type="image/png" href="assets/favicon.png">
 
-    <!-- Link para o Manifeso do PWA-->
+    <!-- Link para o Manifesto do PWA (permite instalação e funcionamento offline) -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- CSS Principal -->
+    <!-- Folha de Estilos Principal -->
     <link rel="stylesheet" href="css/style.css">
 
-    <!-- Biblioteca Externas (html2pdf) -->
+    <!-- Biblioteca Externa html2pdf para exportação de relatórios em PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
-    <!-- Tela de Login -->
+    <!-- Tela de Autenticação (Exibida quando o usuário não está logado) -->
     <div id="loginScreen" style="display: none; text-align: center; margin-top: 50px;">
         <h1>Minha Gibiteca 📚</h1>
         <p>Faça login com sua conta do Google para acessar suas coleções:</p>
         <button type="button" class="btn-action" onclick="window.loginWithGoogle()">Entrar com Google</button>
     </div>
 
-    <!-- Aplicação Principal -->
+    <!-- Aplicação Principal (Exibida após autenticação bem-sucedida) -->
     <div id="mainApp" class="container" style="display: none;">
 
-        <!-- Cabeçalho / Barra do Usuário -->
+        <!-- Cabeçalho do Usuário: Exibe status de login, botão de alternância de tema e logout -->
         <header class="user-header no-pdf">
             <span id="userStatus">Usuário: Carregando...</span>
             <div class="user-header-actions">
@@ -38,12 +38,12 @@
             </div>
         </header>
 
-        <!-- Título do Aplicativo -->
+        <!-- Título Principal do Aplicativo -->
         <div class="app-title">
             <h1>Minha Gibiteca 📚</h1>
         </div>
 
-        <!-- Barra de Controles -->
+        <!-- Barra de Controles: Gerenciamento de coleções e menu de opções (Backup/PDF) -->
         <div class="controls no-pdf">
             <div class="main-controls">
                 <label for="sheetSelect"><strong>Coleção:</strong></label>
@@ -54,7 +54,7 @@
                 <button type="button" class="btn-delete-sheet" id="btnDeleteSheet" onclick="window.deleteCurrentSheet()">Excluir Lista</button>
             </div>
 
-            <!-- Submenu de Opções -->
+            <!-- Submenu de Opções Dropdown -->
             <div class="settings-dropdown">
                 <button type="button" class="btn-settings" onclick="toggleSettingsMenu(event)">⚙️ Opções ▾</button>
 
@@ -71,51 +71,66 @@
             </div>
         </div>
 
-        <!-- Formulário para Adicionar Novo Gibi -->
+        <!-- Formulário para Cadastro de Novos Gibis (Grade de 3 colunas perfeitamente alinhada) -->
         <form id="addGibiForm" class="gibi-form no-pdf" onsubmit="window.addGibi(event)">
             <div class="form-grid">
-                <select id="targetSheetSelect" style="display: none;" title="Escolha em qual coleção salvar">
-                    <!-- Preenchido via JS quando estiver na visão "Todas as Coleções" -->
-                </select>
+                <!-- Linha 1: Destino da coleção, Universo e Editora -->
+                <div class="form-group">
+                    <label for="selectSheet">Salvar em:</label>
+                    <select id="selectSheet" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label for="universo">Universo:</label>
+                    <input type="text" id="universo" placeholder="ex: Marvel" class="form-control" list="universesList">
+                </div>
+                <div class="form-group">
+                    <label for="editora">Editora:</label>
+                    <input type="text" id="editora" placeholder="ex: Abril" class="form-control" list="editorasList">
+                </div>
 
-                <!-- Universo com Datalist -->
-                <input type="text" id="universo" list="universosList" placeholder="Universo (ex: Marvel)">
-                <datalist id="universosList">
-                    <option value="Mauricio de Sousa">
-                    <option value="Marvel">
-                    <option value="DC">
-                    <option value="Disney">
-                </datalist>
-
-                <!-- Editora com Datalist -->
-                <input type="text" id="editora" list="editorasList" placeholder="Editora (ex: Abril)" required>
-                <datalist id="editorasList">
-                    <option value="Abril">
-                    <option value="Globo">
-                    <option value="Panini">
-                    <option value="Culturama">
-                </datalist>
-
-                <!-- Categoria com Datalist -->
-                <input type="text" id="categoria" list="categoriasList" placeholder="Categoria (ex: Almanaque)">
-                <datalist id="categoriasList">
-                    <option value="Almanaque">
-                    <option value="Gibi Mensal">
-                    <option value="Edição Especial">
-                </datalist>
-
-                <!-- Série/Fase com Datalist -->
-                <input type="text" id="serie" list="seriesList" placeholder="Série/Fase (ex: 1ª Série)">
-                <datalist id="seriesList">
-                    <option value="1ª Série">
-                    <option value="2ª Série">
-                </datalist>
-
-                <input type="number" id="numero" placeholder="Número (ex: 1)" required>
-                <input type="text" id="data" placeholder="Mês/Ano (ex: Jan/1980)">
-                <input type="text" id="estado" placeholder="Estado (ex: Bom)">
+                <!-- Linha 2: Categoria, Série/Fase e Número -->
+                <div class="form-group">
+                    <label for="categoria">Categoria:</label>
+                    <input type="text" id="categoria" placeholder="ex: Almanaque" class="form-control" list="categoriasList">
+                </div>
+                <div class="form-group">
+                    <label for="serie">Série/Fase:</label>
+                    <input type="text" id="serie" placeholder="ex: 1ª Série" class="form-control" list="seriesList">
+                </div>
+                <div class="form-group">
+                    <label for="numero">Número:</label>
+                    <input type="number" id="numero" placeholder="ex: 1" class="form-control">
+                </div>
+                
+                <!-- Linha 3: Mês/Ano da Edição (ocupando 2 colunas) e Estado de conservação (1 coluna) -->
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Mês/Ano da Edição:</label>
+                    <div class="month-year-container">
+                        <select id="inputMes" style="flex: 1.4;">
+                            <option value="">Mês</option>
+                            <option value="01">Jan</option>
+                            <option value="02">Fev</option>
+                            <option value="03">Mar</option>
+                            <option value="04">Abr</option>
+                            <option value="05">Mai</option>
+                            <option value="06">Jun</option>
+                            <option value="07">Jul</option>
+                            <option value="08">Ago</option>
+                            <option value="09">Set</option>
+                            <option value="10">Out</option>
+                            <option value="11">Nov</option>
+                            <option value="12">Dez</option>
+                        </select>
+                        <input type="number" id="inputAno" placeholder="Ano (ex: 2026)" style="flex: 1;" min="1950" max="2100">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="estado">Estado:</label>
+                    <input type="text" id="estado" placeholder="ex: Bom" class="form-control">
+                </div>
             </div>
-
+            
+            <!-- Seção de Arquivo de Capa e Checkboxes de Status (Lido/Favorito) -->
             <div class="form-file-row">
                 <label for="capaInput" class="file-label">Imagem da Capa (Opcional):</label>
                 <input type="file" id="capaInput" accept="image/*">
@@ -132,33 +147,32 @@
                 </div>
             </div>
 
+            <!-- Botão de Submissão do Formulário -->
             <button type="submit" class="btn-add">+ Adicionar À Lista</button>
         </form>
 
-        <!-- Conteúdo Impresso/Exportado no PDF -->
+        <!-- Elementos Datalist para Autocomplete nos Inputs do Formulário -->
+        <datalist id="universesList"></datalist>
+        <datalist id="editorasList"></datalist>
+        <datalist id="categoriasList"></datalist>
+        <datalist id="seriesList"></datalist>
+
+        <!-- Conteúdo Principal Exibido na Tabela e Exportável para PDF -->
         <div id="pdfContent">
-            <!-- Título e Contadores da Coleção Atual -->
+            <!-- Cabeçalho da Coleção Atual e Seus Respectivos Contadores de Estatísticas -->
             <div class="collection-header">
                 <div class="collection-header-content">
                     <h2 id="currentSheetTitle">COLEÇÃO: TODAS AS COLEÇÕES</h2>
                     <div class="collection-counters">
-                        <span id="counterCurrentSheet" class="counter-badge">
-                            Exibindo: 0
-                        </span>
-                        <span id="counterReadSheet" class="counter-badge">
-                            Lidos: 0/0 (0%)
-                        </span>
-                        <span id="counterFavSheet" class="counter-badge">
-                            ⭐ Favoritos: 0
-                        </span>
-                        <span id="counterTotal" class="counter-badge">
-                            Total Geral de Gibis: 0
-                        </span>
+                        <span id="counterCurrentSheet" class="counter-badge">Exibindo: 0</span>
+                        <span id="counterReadSheet" class="counter-badge">Lidos: 0/0 (0%)</span>
+                        <span id="counterFavSheet" class="counter-badge">⭐ Favoritos: 0</span>
+                        <span id="counterTotal" class="counter-badge">Total Geral de Gibis: 0</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Filtros e Busca -->
+            <!-- Barra de Filtros e Busca Rápida -->
             <div class="filter-bar no-pdf">
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="🔍 Buscar por coleção, universo, editora..." oninput="window.renderTable()">
@@ -194,7 +208,7 @@
                 </div>
             </div>
 
-            <!-- Tabela de Gibis Catalogados -->
+            <!-- Tabela de Listagem dos Gibis Catalogados -->
             <div class="table-responsive">
                 <table id="gibiTable">
                     <thead>
@@ -213,21 +227,20 @@
                         </tr>
                     </thead>
                     <tbody id="tableBody">
-                        <!-- Linhas geradas dinamicamente pelo JavaScript -->
+                        <!-- Linhas geradas dinamicamente via script -->
                     </tbody>
                 </table>
             </div>
         </div>
-
     </div>
 
-    <!-- Modal para Ampliar Capas -->
+    <!-- Modal para Visualização Ampliada da Capa do Gibi -->
     <div id="imageModal" class="modal" onclick="window.closeImageModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); align-items:center; justify-content:center; z-index:1000;">
         <span style="position:absolute; top:20px; right:30px; color:#fff; font-size:30px; cursor:pointer;">&times;</span>
         <img id="imgModalTarget" style="max-width:90%; max-height:90%; border-radius:8px; box-shadow:0 0 15px rgba(255,255,255,0.3);">
     </div>
 
-    <!-- Controle do Menu Dropdown -->
+    <!-- Scripts de Controle do Menu Dropdown de Opções -->
     <script>
         function toggleSettingsMenu(event) {
             if (event) event.stopPropagation();
@@ -248,7 +261,7 @@
         });
     </script>
 
-    <!-- Script Principal da Aplicação -->
+    <!-- Script Principal da Aplicação (Módulo JavaScript) -->
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
