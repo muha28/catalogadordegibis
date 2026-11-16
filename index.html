@@ -81,29 +81,29 @@
                 </div>
                 <div class="form-group">
                     <label for="inputUniverso">Universo:</label>
-                    <input type="text" id="inputUniverso" placeholder="ex: Marvel" class="form-control" list="universesList">
+                    <input type="text" id="inputUniverso" placeholder="ex: Marvel" class="form-control" list="universesList" autocomplete="off">
                 </div>
                 <div class="form-group">
                     <label for="inputEditora">Editora:</label>
-                    <input type="text" id="inputEditora" placeholder="ex: Abril" class="form-control" list="editorasList">
+                    <input type="text" id="inputEditora" placeholder="ex: Abril" class="form-control" list="editorasList" autocomplete="off">
                 </div>
 
                 <!-- Linha 2: Categoria, Série/Fase e Número -->
                 <div class="form-group">
                     <label for="inputCategoria">Categoria:</label>
-                    <input type="text" id="inputCategoria" placeholder="ex: Almanaque" class="form-control" list="categoriasList">
+                    <input type="text" id="inputCategoria" placeholder="ex: Almanaque" class="form-control" list="categoriasList" autocomplete="off">
                 </div>
                 <div class="form-group">
                     <label for="inputSerie">Série/Fase:</label>
-                    <input type="text" id="inputSerie" placeholder="ex: 1ª Série" class="form-control" list="seriesList">
+                    <input type="text" id="inputSerie" placeholder="ex: 1ª Série" class="form-control" list="seriesList" autocomplete="off">
                 </div>
                 <div class="form-group">
                     <label for="inputNumero">Número:</label>
-                    <input type="number" id="inputNumero" placeholder="ex: 1" class="form-control">
+                    <input type="number" id="inputNumero" name="edicao_numero" placeholder="ex: 1" class="form-control" autocomplete="off" inputmode="numeric">
                 </div>
                 
-                <!-- Linha 3: Mês/Ano da Edição (ocupando 2 colunas) e Estado de conservação (1 coluna) -->
-                <div class="form-group" style="grid-column: span 2;">
+                <!-- Linha 3: Mês/Ano da Edição, Estado e Valor Pago -->
+                <div class="form-group">
                     <label>Mês/Ano da Edição:</label>
                     <div class="month-year-container">
                         <select id="inputMes" style="flex: 1.4;">
@@ -121,12 +121,16 @@
                             <option value="11">Nov</option>
                             <option value="12">Dez</option>
                         </select>
-                        <input type="number" id="inputAno" placeholder="Ano (ex: 2026)" style="flex: 1;" min="1950" max="2100">
+                        <input type="number" id="inputAno" placeholder="Ano (ex: 2026)" style="flex: 1;" min="1950" max="2100" autocomplete="off">
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="inputEstado">Estado:</label>
-                    <input type="text" id="inputEstado" placeholder="ex: Bom" class="form-control">
+                    <input type="text" id="inputEstado" name="conservacao_gibi" placeholder="ex: Bom" class="form-control" autocomplete="off" list="estadosList">
+                </div>
+                <div class="form-group">
+                    <label for="inputValor">Valor Pago (R$):</label>
+                    <input type="number" id="inputValor" name="valor_gibi" placeholder="ex: 15.00" class="form-control" step="0.01" min="0" inputmode="decimal" autocomplete="off">
                 </div>
             </div>
             
@@ -156,6 +160,13 @@
         <datalist id="editorasList"></datalist>
         <datalist id="categoriasList"></datalist>
         <datalist id="seriesList"></datalist>
+        <datalist id="estadosList">
+            <option value="Lacrado / Novo">
+            <option value="Ótimo">
+            <option value="Bom">
+            <option value="Regular">
+            <option value="Ruim">
+        </datalist>
 
         <!-- Conteúdo Principal Exibido na Tabela e Exportável para PDF -->
         <div id="pdfContent">
@@ -164,10 +175,11 @@
                 <div class="collection-header-content">
                     <h2 id="currentSheetTitle">COLEÇÃO: TODAS AS COLEÇÕES</h2>
                     <div class="collection-counters">
-                        <span id="counterCurrentSheet" class="counter-badge">Exibindo: 0</span>
-                        <span id="counterReadSheet" class="counter-badge">Lidos: 0/0 (0%)</span>
-                        <span id="counterFavSheet" class="counter-badge">⭐ Favoritos: 0</span>
-                        <span id="counterTotal" class="counter-badge">Total Geral de Gibis: 0</span>
+                        <span id="counterCurrentSheet" class="counter-badge">Exibindo: 0[cite: 10]</span>
+                        <span id="counterReadSheet" class="counter-badge">Lidos: 0/0 (0%)[cite: 10]</span>
+                        <span id="counterFavSheet" class="counter-badge">⭐ Favoritos: 0[cite: 10]</span>
+                        <span id="counterValorSheet" class="counter-badge">💰 Investido: R$ 0,00</span>
+                        <span id="counterTotal" class="counter-badge">Total Geral de Gibis: 0[cite: 10]</span>
                     </div>
                 </div>
             </div>

@@ -644,6 +644,7 @@ window.addGibi = async function(event) {
         const serieInput = document.getElementById('inputSerie')?.value?.trim() || "";
         const numeroInput = parseInt(document.getElementById('inputNumero')?.value) || 0;
         const estadoInput = document.getElementById('inputEstado')?.value?.trim() || "";
+        const valorInput = parseFloat(document.getElementById('inputValor')?.value) || 0;
         const dataFormatada = buildDataString('inputMes', 'inputAno');
 
         database[targetSheet].push({
@@ -657,7 +658,8 @@ window.addGibi = async function(event) {
             serie: serieInput,
             numero: numeroInput,
             data: dataFormatada,
-            estado: estadoInput
+            estado: estadoInput,
+            valor: valorInput
         });
 
         await saveData(targetSheet);
@@ -721,6 +723,7 @@ window.duplicateGibi = function(sheetName, gibiId) {
     document.getElementById('inputNumero').value = item.numero !== undefined ? item.numero : '';
     parseDataToInputs(item.data || '', 'inputMes', 'inputAno');
     document.getElementById('inputEstado').value = item.estado || '';
+    document.getElementById('inputValor').value = item.valor !== undefined && item.valor !== null ? item.valor : '';
     document.getElementById('lidoInput').checked = false;
     document.getElementById('favoritoInput').checked = Boolean(item.favorito);
 
@@ -761,20 +764,23 @@ window.saveEdit = async function(sheetName, gibiId) {
     const newCat = document.getElementById(`editCategoria_${gibiId}`).value.trim();
     const newSer = document.getElementById(`editSerie_${gibiId}`).value.trim();
     const newData = buildDataString(`editMes_${gibiId}`, `editAno_${gibiId}`);
+    const newEstado = document.getElementById(`editEstado_${gibiId}`).value.trim();
+    const newValor = parseFloat(document.getElementById(`editValor_${gibiId}`)?.value) || 0;
 
-    database[targetSheet][itemIndex] = {
-        id: gibiId,
-        lido: editLidoEl ? editLidoEl.checked : Boolean(database[targetSheet][itemIndex].lido),
-        favorito: editFavEl ? editFavEl.checked : Boolean(database[targetSheet][itemIndex].favorito),
-        capa: capaURL,
-        universo: newUniv !== "" ? newUniv : "Mauricio de Sousa",
-        editora: newEd,
-        categoria: newCat,
-        serie: newSer,
-        numero: parseInt(document.getElementById(`editNumero_${gibiId}`).value) || 0,
-        data: newData,
-        estado: document.getElementById(`editEstado_${gibiId}`).value.trim()
-    };
+        database[targetSheet][itemIndex] = {
+            id: gibiId,
+            lido: editLidoEl ? editLidoEl.checked : Boolean(database[targetSheet][itemIndex].lido),
+            favorito: editFavEl ? editFavEl.checked : Boolean(database[targetSheet][itemIndex].favorito),
+            capa: capaURL,
+            universo: newUniv !== "" ? newUniv : "Mauricio de Sousa",
+            editora: newEd,
+            categoria: newCat,
+            serie: newSer,
+            numero: parseInt(document.getElementById(`editNumero_${gibiId}`).value) || 0,
+            data: newData,
+            estado: newEstado,
+            valor: newValor // Salva o valor atualizado
+        };
 
     editingId = null;
     editingOriginSheet = null;
@@ -904,6 +910,12 @@ function updateCounters(renderedCount = 0, isGlobal = false, filteredItems = [])
         favCounterEl.innerText = `⭐ Favoritos: ${favCount}`;
     }
 
+    const valorCounterEl = document.getElementById('counterValorSheet');
+    if (valorCounterEl) {
+        const totalInvestido = baseList.reduce((acc, item) => acc + (Number(item.valor) || 0), 0);
+        valorCounterEl.innerText = `💰 Investido: R$ ${totalInvestido.toFixed(2).replace('.', ',')}`;
+    }
+
     const totalCounterEl = document.getElementById('counterTotal');
     if (totalCounterEl) {
         totalCounterEl.innerText = `Total Geral de Gibis: ${totalAllSheets}`;
@@ -1017,7 +1029,12 @@ window.renderTable = function() {
                         <input type="number" id="editAno_${item.id}" placeholder="Ano" style="font-size:11px; padding:2px; width:60px;">
                     </div>
                 </td>
-                <td><input type="text" id="editEstado_${item.id}"></td>
+                <td>
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <input type="text" id="editEstado_${item.id}" placeholder="Estado" style="font-size:11px; padding:2px;">
+                        <input type="number" id="editValor_${item.id}" placeholder="Valor R$" step="0.01" min="0" inputmode="decimal" style="font-size:11px; padding:2px;" autocomplete="off">
+                    </div>
+                </td>
                 <td class="actions-cell no-pdf">
                     <button class="btn-save" onclick="saveEdit('${originSheet}', '${item.id}')">Salvar</button>
                     <button class="btn-cancel" onclick="cancelEdit()">X</button>
@@ -1039,6 +1056,8 @@ window.renderTable = function() {
                 if (elNum) elNum.value = item.numero;
                 parseDataToInputs(item.data || '', `editMes_${item.id}`, `editAno_${item.id}`);
                 if (elEst) elEst.value = item.estado || '';
+                const elVal = tr.querySelector(`#editValor_${item.id}`);
+                if (elVal) elVal.value = (item.valor !== undefined && item.valor !== null && item.valor !== 0) ? item.valor : '';
             }, 0);
 
         } else {
